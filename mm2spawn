@@ -1,20 +1,25 @@
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Turtle-Brand/Turtle-Lib/main/source.lua"))()
+local TweenService = game:GetService("TweenService")
 local w = lib:Window("MM2 Summer")
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
+
 plr.CharacterAdded:Connect(function(char)
     character = char
     humPart = char:WaitForChild("HumanoidRootPart")
 end)
+
 local map
 game.Workspace.DescendantAdded:Connect(function(m)
     if m:IsA("Model") and m.Name == "CoinContainer" then
         map = m
     end
 end)
+
 local delay = 2.5
 getgenv().farm = false
+
 w:Toggle("BeachBall Farm", false, function(bool)
     getgenv().farm = bool
     while getgenv().farm do
@@ -26,31 +31,46 @@ w:Toggle("BeachBall Farm", false, function(bool)
                 end
             end
         end
+
         if map and map.Parent then
             for _,coin in ipairs(map:GetChildren()) do
                 if not getgenv().farm then break end
-                if coin:IsA("Part") and coin.Name=="Coin_Server" and coin:GetAttribute("CoinID")=="BeachBall" then
+                if coin:IsA("Part") and coin.Name == "Coin_Server" and coin:GetAttribute("CoinID") == "BeachBall" then
                     local cv = coin:FindFirstChild("CoinVisual")
-                    if cv and cv.Transparency~=1 then
+                    if cv and cv.Transparency ~= 1 then
                         if not humPart or not humPart.Parent then
                             humPart = character and character:FindFirstChild("HumanoidRootPart")
                             if not humPart then break end
                         end
+
                         for _,p in pairs(character:GetChildren()) do
-                            if p:IsA("BasePart") and p.CanCollide then p.CanCollide=false end
+                            if p:IsA("BasePart") and p.CanCollide then
+                                p.CanCollide = false
+                            end
                         end
-                        humPart.CFrame = coin.CFrame * CFrame.new(0,6,0)
+
+                        -- Tween к монете
+                        local goal = {CFrame = coin.CFrame * CFrame.new(0, 6, 0)}
+                        local dist = (humPart.Position - coin.Position).Magnitude
+                        local tweenTime = math.clamp(dist / 25, 0.5, 2) -- скорость движения
+                        local tween = TweenService:Create(humPart, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), goal)
+                        tween:Play()
+                        tween.Completed:Wait()
+
                         task.wait(delay)
                     end
                 end
             end
         end
+
         task.wait(1)
     end
 end)
+
 w:Box("Farm Delay", function(num)
     delay = tonumber(num) or 2.5
 end)
+
 local GC = getconnections or get_signal_cons
 w:Button("Anti AFK", function()
     if GC then
@@ -65,4 +85,5 @@ w:Button("Anti AFK", function()
         end)
     end
 end)
+
 w:Label("~ t.me/arceusxscripts", Color3.fromRGB(127, 143, 166))

@@ -1,22 +1,29 @@
--- Подключаем Pop UI
+-- UI Pop (Eazvy)
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Eazvy/UILibs/main/Librarys/Pop/Example"))()
+local win = lib:Init({
+    Title = "MM2 Summer",
+    Key = Enum.KeyCode.RightControl,
+    Theme = "Dark"
+})
+
+-- Создаём вкладку (Tab)
+local farmTab = win:CreateTab("⚙️ Автофарм")
+
+-- TweenService
 local TweenService = game:GetService("TweenService")
 
--- Создаем окно
-local w = lib:Window("MM2 Summer")
-
--- Игрок и его персонаж
+-- Игрок
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
 
--- Обновление при смерти
+-- Перехват при респавне
 plr.CharacterAdded:Connect(function(char)
 	character = char
 	humPart = char:WaitForChild("HumanoidRootPart")
 end)
 
--- Поиск карты с монетами
+-- Карта с монетами
 local map
 game.Workspace.DescendantAdded:Connect(function(m)
 	if m:IsA("Model") and m.Name == "CoinContainer" then
@@ -28,12 +35,12 @@ end)
 local delay = 0.1
 getgenv().farm = false
 
--- Основная логика фарма
-w:Toggle("BeachBall Farm", false, function(bool)
-	getgenv().farm = bool
+-- Переключатель фарма
+farmTab:CreateToggle("BeachBall Farm", function(state)
+	getgenv().farm = state
 	while getgenv().farm do
-		if (not map) or (not map.Parent) then
-			for _,m in ipairs(game.Workspace:GetDescendants()) do
+		if not map or not map.Parent then
+			for _, m in ipairs(game.Workspace:GetDescendants()) do
 				if m:IsA("Model") and m.Name == "CoinContainer" then
 					map = m
 					break
@@ -42,7 +49,7 @@ w:Toggle("BeachBall Farm", false, function(bool)
 		end
 
 		if map and map.Parent then
-			for _,coin in ipairs(map:GetChildren()) do
+			for _, coin in ipairs(map:GetChildren()) do
 				if not getgenv().farm then break end
 				if coin:IsA("Part") and coin.Name == "Coin_Server" and coin:GetAttribute("CoinID") == "BeachBall" then
 					local cv = coin:FindFirstChild("CoinVisual")
@@ -52,14 +59,12 @@ w:Toggle("BeachBall Farm", false, function(bool)
 							if not humPart then break end
 						end
 
-						-- Отключаем столкновения
-						for _,p in pairs(character:GetChildren()) do
+						for _, p in pairs(character:GetChildren()) do
 							if p:IsA("BasePart") and p.CanCollide then
 								p.CanCollide = false
 							end
 						end
 
-						-- Плавное движение к монете
 						local goal = {CFrame = coin.CFrame * CFrame.new(0, 6, 0)}
 						local dist = (humPart.Position - coin.Position).Magnitude
 						local tweenTime = math.clamp(dist / 25, 0.2, 1.2)
@@ -77,14 +82,14 @@ w:Toggle("BeachBall Farm", false, function(bool)
 	end
 end)
 
--- Настройка задержки
-w:Box("Farm Delay", function(num)
-	delay = tonumber(num) or 0.1
+-- Поле ввода задержки
+farmTab:CreateBox("Задержка (сек)", function(txt)
+	delay = tonumber(txt) or 0.1
 end)
 
--- Anti-AFK
-local GC = getconnections or get_signal_cons
-w:Button("Anti AFK", function()
+-- Кнопка Anti AFK
+farmTab:CreateButton("🛡️ Anti AFK", function()
+	local GC = getconnections or get_signal_cons
 	if GC then
 		for _,v in pairs(GC(plr.Idled)) do
 			if v.Disable then v:Disable() elseif v.Disconnect then v:Disconnect() end
@@ -98,5 +103,5 @@ w:Button("Anti AFK", function()
 	end
 end)
 
--- Подпись
-w:Label("~ t.me/arceusxscripts", Color3.fromRGB(127, 143, 166))
+-- Лейбл внизу
+farmTab:CreateLabel("~ t.me/arceusxscripts")

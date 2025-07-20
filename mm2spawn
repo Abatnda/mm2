@@ -1,6 +1,6 @@
 local lib = loadstring(game:HttpGet("https://raw.githubusercontent.com/Turtle-Brand/Turtle-Lib/main/source.lua"))()
 local TweenService = game:GetService("TweenService")
-local w = lib:Window("MM2 Summer")
+local w = lib:Window("murder mystery 2 | Summer")
 local plr = game.Players.LocalPlayer
 local character = plr.Character or plr.CharacterAdded:Wait()
 local humPart = character:WaitForChild("HumanoidRootPart")
@@ -85,5 +85,4 @@ w:Button("Anti AFK", function()
         end)
     end
 end)
-
-w:Label("~ t.me/arceusxscripts", Color3.fromRGB(127, 143, 166))
+w:Label("https://discord.gg/NgrkpHPbJQ", Color3.fromRGB(127, 143, 166))

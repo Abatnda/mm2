@@ -6,11 +6,11 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 350
-    local tweenTime = 0.5
+    local maxDistance = 250 -- Максимальное расстояние для твина
+    local tweenTime = 1   -- Время твина (уменьшил с 2.9)
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
 
-    -- Создание GUI
+    -- GUI создание (оставляю как у тебя, без изменений)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MM2Farm"
     ScreenGui.ResetOnSpawn = false
@@ -18,32 +18,22 @@ if game.PlaceId == 142823291 then
     ScreenGui.Parent = CoreGUI
 
     local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 250, 0, 100) -- увеличил размер
-    Frame.Position = UDim2.new(0.5, -125, 0.5, -50) -- по центру
+    Frame.Size = UDim2.new(0, 150, 0, 50)
+    Frame.Position = UDim2.new(0, 100, 0, 100)
     Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
     Frame.Parent = ScreenGui
 
     local UICorner = Instance.new("UICorner", Frame)
-    UICorner.CornerRadius = UDim.new(0, 12)
-
-    local Title = Instance.new("TextLabel")
-    Title.Size = UDim2.new(1, -20, 0, 30)
-    Title.Position = UDim2.new(0, 10, 0, 10)
-    Title.BackgroundTransparency = 1
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.GothamBold
-    Title.TextSize = 20
-    Title.Text = "MM2 AutoFarm"
-    Title.Parent = Frame
+    UICorner.CornerRadius = UDim.new(0, 10)
 
     local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -20, 0, 40)
-    Button.Position = UDim2.new(0, 10, 0, 60)
+    Button.Size = UDim2.new(1, -10, 1, -10)
+    Button.Position = UDim2.new(0, 5, 0, 5)
     Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
     Button.TextColor3 = Color3.new(1, 1, 1)
     Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 18
+    Button.TextSize = 14
     Button.Text = "AutoFarm: OFF"
     Button.Parent = Frame
 
@@ -79,6 +69,7 @@ if game.PlaceId == 142823291 then
         end
     end)
 
+    -- Проверка валидности монеты
     local function isValidPart(part)
         local pos = part.Position
         if not pos or pos.X ~= pos.X or pos.Y ~= pos.Y or pos.Z ~= pos.Z then
@@ -90,6 +81,7 @@ if game.PlaceId == 142823291 then
         return true
     end
 
+    -- Поиск ближайшей монеты в пределах maxDistance
     local function getNearestCoin()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
@@ -111,19 +103,12 @@ if game.PlaceId == 142823291 then
         return nearestCoin
     end
 
+    -- Твин к части с таймаутом
     local function tweenToPart(part)
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
         local hrp = char.HumanoidRootPart
-        local dist = (hrp.Position - part.Position).Magnitude
-
-        if dist > maxDistance then
-            hrp.CFrame = part.CFrame
-            task.wait(0.05)
-            return
-        end
-
         local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
         tween:Play()
 
@@ -137,20 +122,24 @@ if game.PlaceId == 142823291 then
         while not completed and tick() - startTime < tweenTime + 0.3 do
             task.wait(0.05)
         end
+
+        -- Если не успел долететь — твин прервется и мы продолжим к следующей монете
     end
 
+    -- Функция фарма монет (ускоренный цикл)
     local function coinFarm()
         while getgenv().coinFarm do
             local coin = getNearestCoin()
             if coin then
                 tweenToPart(coin)
-                task.wait(0.05)
+                task.wait(0.05) -- минимальная пауза после твина
             else
-                task.wait(0.2)
+                task.wait(0.3) -- чуть подождать, если монет нет рядом
             end
         end
     end
 
+    -- Кнопка для включения/выключения
     local toggled = false
     Button.MouseButton1Click:Connect(function()
         toggled = not toggled

@@ -53,7 +53,7 @@ if game.PlaceId == 142823291 then
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp and part and part:IsDescendantOf(game) and part.Parent then
-      if part.Position.Y > 0 then -- проверка по высоте
+      if part.Position.Y > 0 then
         local success, err = pcall(function()
           local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
           tween:Play()
@@ -105,7 +105,7 @@ if game.PlaceId == 142823291 then
         tweenToPart(coin)
         task.wait(0.1)
       else
-        task.wait(0.5)
+        task.wait(0.5) -- Ждем, если монет нет
       end
     end
   end

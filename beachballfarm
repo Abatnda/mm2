@@ -1,142 +1,96 @@
 if game.PlaceId == 142823291 then
-    local Players = game:GetService('Players')
-    local CoreGUI = game:GetService('CoreGui')
-    local TweenService = game:GetService('TweenService')
+    local Players = game:GetService("Players")
+    local TweenService = game:GetService("TweenService")
+    local CoreGui = game:GetService("CoreGui")
     local UserInputService = game:GetService("UserInputService")
-    local LocalPlayer = Players.LocalPlayer
+    local lp = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 350
-    local tweenTime = 0.6 -- безопасное значение
-    local segmentLength = 60 -- шаг твина
+    local tweenSpeed = 0.6 -- быстрее = меньше время (например, 0.5), но не слишком мало
+    local maxCoinDistance = 300 -- радиус поиска монет
 
-    local ScreenGui = Instance.new("ScreenGui")
-    ScreenGui.Name = "MM2Farm"
-    ScreenGui.ResetOnSpawn = false
-    ScreenGui.IgnoreGuiInset = true
-    ScreenGui.Parent = CoreGUI
+    -- === GUI ===
+    local gui = Instance.new("ScreenGui", CoreGui)
+    gui.Name = "CoinFarmGUI"
+    gui.ResetOnSpawn = false
 
-    local Frame = Instance.new("Frame")
-    Frame.Size = UDim2.new(0, 150, 0, 50)
-    Frame.Position = UDim2.new(0, 100, 0, 100)
-    Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-    Frame.BorderSizePixel = 0
-    Frame.Parent = ScreenGui
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0, 150, 0, 50)
+    frame.Position = UDim2.new(0, 100, 0, 100)
+    frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    frame.Active = true
+    frame.Draggable = true
+    Instance.new("UICorner", frame).CornerRadius = UDim.new(0, 10)
 
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+    local button = Instance.new("TextButton", frame)
+    button.Size = UDim2.new(1, -10, 1, -10)
+    button.Position = UDim2.new(0, 5, 0, 5)
+    button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    button.TextColor3 = Color3.new(1, 1, 1)
+    button.Text = "AutoFarm: OFF"
+    button.Font = Enum.Font.GothamBold
+    button.TextSize = 14
+    Instance.new("UICorner", button).CornerRadius = UDim.new(0, 8)
 
-    local Button = Instance.new("TextButton")
-    Button.Size = UDim2.new(1, -10, 1, -10)
-    Button.Position = UDim2.new(0, 5, 0, 5)
-    Button.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    Button.TextColor3 = Color3.new(1, 1, 1)
-    Button.Font = Enum.Font.GothamBold
-    Button.TextSize = 14
-    Button.Text = "AutoFarm: OFF"
-    Button.Parent = Frame
-
-    Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
-
-    -- GUI Drag
-    local dragging, dragInput, dragStart, startPos
-
-    Frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = Frame.Position
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then dragging = false end
-            end)
-        end
-    end)
-
-    Frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    local function isValidPart(part)
-        local pos = part.Position
-        return pos and pos.Y >= 0 and pos.X == pos.X and pos.Y == pos.Y and pos.Z == pos.Z
+    -- === Логика монет ===
+    local function isValidCoin(part)
+        return part:IsA("Part") and part.Name == "Coin_Server" and part:IsDescendantOf(workspace)
     end
 
-    local function getNearestCoin()
-        local char = LocalPlayer.Character
+    local function getClosestCoin()
+        local char = lp.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
         local hrp = char.HumanoidRootPart
 
-        local nearestCoin = nil
-        local nearestDistance = math.huge
+        local closestCoin = nil
+        local closestDist = maxCoinDistance
 
-        for _, obj in pairs(workspace:GetDescendants()) do
-            if obj:IsA("Part") and obj.Name == "Coin_Server" and isValidPart(obj) then
-                local dist = (hrp.Position - obj.Position).Magnitude
-                if dist < nearestDistance and dist <= maxDistance then
-                    nearestDistance = dist
-                    nearestCoin = obj
+        for _, coin in ipairs(workspace:GetDescendants()) do
+            if isValidCoin(coin) then
+                local dist = (coin.Position - hrp.Position).Magnitude
+                if dist < closestDist then
+                    closestDist = dist
+                    closestCoin = coin
                 end
             end
         end
 
-        return nearestCoin
+        return closestCoin
     end
 
-    local function tweenToPartSmooth(targetPart)
-        local char = LocalPlayer.Character
+    local function tweenTo(position)
+        local char = lp.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
         local hrp = char.HumanoidRootPart
-        local startPos = hrp.Position
-        local endPos = targetPart.Position
-        local totalDistance = (endPos - startPos).Magnitude
-
-        local steps = math.max(1, math.ceil(totalDistance / segmentLength))
-        local timePerStep = tweenTime * (segmentLength / totalDistance)
-
-        for i = 1, steps do
-            if not getgenv().coinFarm then return end
-
-            local nextPosition = startPos + (endPos - startPos) * (i / steps)
-            local info = TweenInfo.new(math.clamp(timePerStep, 0.05, tweenTime), Enum.EasingStyle.Linear)
-            local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(nextPosition)})
-            tween:Play()
-            tween.Completed:Wait()
-            task.wait(0.01)
-        end
+        local goal = {CFrame = CFrame.new(position)}
+        local info = TweenInfo.new(tweenSpeed, Enum.EasingStyle.Linear)
+        local tween = TweenService:Create(hrp, info, goal)
+        tween:Play()
+        tween.Completed:Wait()
     end
 
-    local function coinFarm()
+    local function farmLoop()
         while getgenv().coinFarm do
-            local coin = getNearestCoin()
+            local coin = getClosestCoin()
             if coin then
-                tweenToPartSmooth(coin)
+                tweenTo(coin.Position + Vector3.new(0, 2, 0))
+                task.wait(0.05)
             else
-                task.wait(0.2)
+                task.wait(0.3)
             end
         end
     end
 
-    local toggled = false
-    Button.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        getgenv().coinFarm = toggled
-
-        if toggled then
-            Button.Text = "AutoFarm: ON"
-            Button.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
-            task.spawn(coinFarm)
+    -- === Переключение кнопки ===
+    button.MouseButton1Click:Connect(function()
+        getgenv().coinFarm = not getgenv().coinFarm
+        if getgenv().coinFarm then
+            button.Text = "AutoFarm: ON"
+            button.BackgroundColor3 = Color3.fromRGB(50, 120, 50)
+            task.spawn(farmLoop)
         else
-            Button.Text = "AutoFarm: OFF"
-            Button.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
+            button.Text = "AutoFarm: OFF"
+            button.BackgroundColor3 = Color3.fromRGB(120, 50, 50)
         end
     end)
 end

@@ -6,11 +6,11 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 250 -- Максимальное расстояние для твина
-    local tweenTime = 1.2   -- Время твина (уменьшил с 2.9)
-    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
+    local maxDistance = 1000 -- Увеличено: будет искать монеты на всей карте
+    local stepDistance = 25 -- Один шаг твина
+    local stepTime = 0.12 -- Время одного шага
 
-    -- GUI создание (оставляю как у тебя, без изменений)
+    -- GUI
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MM2Farm"
     ScreenGui.ResetOnSpawn = false
@@ -23,9 +23,7 @@ if game.PlaceId == 142823291 then
     Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
     Frame.Parent = ScreenGui
-
-    local UICorner = Instance.new("UICorner", Frame)
-    UICorner.CornerRadius = UDim.new(0, 10)
+    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
     local Button = Instance.new("TextButton")
     Button.Size = UDim2.new(1, -10, 1, -10)
@@ -36,18 +34,15 @@ if game.PlaceId == 142823291 then
     Button.TextSize = 14
     Button.Text = "AutoFarm: OFF"
     Button.Parent = Frame
-
     Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
 
-    -- Перемещение GUI
+    -- Drag GUI
     local dragging, dragInput, dragStart, startPos
-
     Frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = Frame.Position
-
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -69,83 +64,69 @@ if game.PlaceId == 142823291 then
         end
     end)
 
-    -- Проверка валидности монеты
+    -- Проверка валидности позиции
     local function isValidPart(part)
         local pos = part.Position
-        if not pos or pos.X ~= pos.X or pos.Y ~= pos.Y or pos.Z ~= pos.Z then
-            return false
-        end
-        if pos.Y < 0 then
-            return false
-        end
-        return true
+        return pos and pos.Y > 0 and pos.X == pos.X and pos.Y == pos.Y and pos.Z == pos.Z
     end
 
-    -- Поиск ближайшей монеты в пределах maxDistance
+    -- Поиск ближайшей монеты
     local function getNearestCoin()
         local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+        if not (char and char:FindFirstChild("HumanoidRootPart")) then return nil end
         local hrp = char.HumanoidRootPart
 
-        local nearestCoin = nil
-        local nearestDistance = math.huge
-
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("Part") and descendant.Name == "Coin_Server" and isValidPart(descendant) then
-                local dist = (hrp.Position - descendant.Position).Magnitude
-                if dist < nearestDistance and dist <= maxDistance then
-                    nearestDistance = dist
-                    nearestCoin = descendant
+        local nearest, minDist = nil, math.huge
+        for _, part in pairs(workspace:GetDescendants()) do
+            if part:IsA("Part") and part.Name == "Coin_Server" and isValidPart(part) then
+                local dist = (hrp.Position - part.Position).Magnitude
+                if dist < minDist and dist <= maxDistance then
+                    minDist = dist
+                    nearest = part
                 end
             end
         end
-
-        return nearestCoin
+        return nearest
     end
 
-    -- Твин к части с таймаутом
-    local function tweenToPart(part)
+    -- Умный Tween с шагами
+    local function smartTweenToPart(target)
         local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
+        if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
         local hrp = char.HumanoidRootPart
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
-        tween:Play()
+        local distance = (hrp.Position - target.Position).Magnitude
+        local steps = math.max(1, math.ceil(distance / stepDistance))
+        local offset = (target.Position - hrp.Position) / steps
 
-        local completed = false
-
-        tween.Completed:Connect(function()
-            completed = true
-        end)
-
-        local startTime = tick()
-        while not completed and tick() - startTime < tweenTime + 0.3 do
-            task.wait(0.05)
+        for i = 1, steps do
+            if not getgenv().coinFarm then break end
+            local nextPos = hrp.Position + offset
+            local tween = TweenService:Create(hrp, TweenInfo.new(stepTime, Enum.EasingStyle.Linear), {
+                CFrame = CFrame.new(nextPos)
+            })
+            tween:Play()
+            tween.Completed:Wait()
+            task.wait(0.01)
         end
-
-        -- Если не успел долететь — твин прервется и мы продолжим к следующей монете
     end
 
-    -- Функция фарма монет (ускоренный цикл)
+    -- Основной цикл фарма
     local function coinFarm()
         while getgenv().coinFarm do
             local coin = getNearestCoin()
             if coin then
-                tweenToPart(coin)
-                task.wait(0.05) -- минимальная пауза после твина
+                smartTweenToPart(coin)
+                task.wait(0.05)
             else
-                task.wait(0.3) -- чуть подождать, если монет нет рядом
+                task.wait(0.3)
             end
         end
     end
 
-    -- Кнопка для включения/выключения
-    local toggled = false
+    -- Включение и выключение
     Button.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        getgenv().coinFarm = toggled
-
-        if toggled then
+        getgenv().coinFarm = not getgenv().coinFarm
+        if getgenv().coinFarm then
             Button.Text = "AutoFarm: ON"
             Button.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
             task.spawn(coinFarm)

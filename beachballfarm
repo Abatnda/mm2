@@ -13,11 +13,8 @@ if game.PlaceId == 142823291 then
   local ScreenGui = Instance.new('ScreenGui')
   local MainFrame = Instance.new('Frame')
   local HeaderFrame = Instance.new('Frame')
-  local HeaderFix = Instance.new('Frame')
   local Description = Instance.new('TextLabel')
   local GameName = Instance.new('TextLabel')
-  local Icon = Instance.new('ImageLabel')
-  local CloseIcon = Instance.new('ImageButton')
   local MainButton = Instance.new('TextButton')
 
   -- [ Functions ] --
@@ -56,8 +53,7 @@ if game.PlaceId == 142823291 then
     local char = LocalPlayer.Character
     local hrp = char and char:FindFirstChild("HumanoidRootPart")
     if hrp and part and part:IsDescendantOf(game) and part.Parent then
-      -- Проверяем, что позиция монеты не под землёй или не слишком низко (Y > 0)
-      if part.Position.Y > 0 then
+      if part.Position.Y > 0 then -- проверка по высоте
         local success, err = pcall(function()
           local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
           tween:Play()
@@ -74,17 +70,43 @@ if game.PlaceId == 142823291 then
     end
   end
 
-  local function coinFarm()
-    while getgenv().coinFarm do
-      for _, descendant in pairs(workspace:GetDescendants()) do
-        if descendant:IsA("BasePart") and descendant.Name == "Coin_Server" then
-          if descendant.Parent then
-            tweenToPart(descendant)
-            task.wait(0.1)
+  local function getDistance(pos1, pos2)
+    return (pos1 - pos2).Magnitude
+  end
+
+  local function findNearestCoin()
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return nil end
+
+    local nearestCoin = nil
+    local nearestDist = math.huge
+    local hrpPos = hrp.Position
+
+    for _, descendant in pairs(workspace:GetDescendants()) do
+      if descendant:IsA("BasePart") and descendant.Name == "Coin_Server" and descendant.Parent then
+        if descendant.Position.Y > 0 then
+          local dist = getDistance(hrpPos, descendant.Position)
+          if dist < nearestDist then
+            nearestDist = dist
+            nearestCoin = descendant
           end
         end
       end
-      task.wait(0.5)
+    end
+
+    return nearestCoin
+  end
+
+  local function coinFarm()
+    while getgenv().coinFarm do
+      local coin = findNearestCoin()
+      if coin then
+        tweenToPart(coin)
+        task.wait(0.1)
+      else
+        task.wait(0.5)
+      end
     end
   end
 
@@ -154,7 +176,6 @@ if game.PlaceId == 142823291 then
       getgenv().coinFarm = true
       MainButton.Text = "Working: ON"
       MainButton.TextColor3 = Color3.fromRGB(100, 255, 100)
-      -- Запускаем фарм в отдельном потоке, чтобы не блокировать UI
       task.spawn(coinFarm)
     else
       getgenv().coinFarm = false

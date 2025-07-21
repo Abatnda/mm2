@@ -6,11 +6,11 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 200 -- Максимальное расстояние для твина
-    local tweenTime = 0.6   -- Время твина (уменьшил с 2.9)
+    local maxDistance = 350     -- Увеличил дальность поиска монет
+    local tweenTime = 0.5       -- Ускорил время твина (0.5 секунды)
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
 
-    -- GUI создание (оставляю как у тебя, без изменений)
+    -- GUI создание (оставляю без изменений)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MM2Farm"
     ScreenGui.ResetOnSpawn = false
@@ -39,119 +39,5 @@ if game.PlaceId == 142823291 then
 
     Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
 
-    -- Перемещение GUI
-    local dragging, dragInput, dragStart, startPos
-
-    Frame.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = Frame.Position
-
-            input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
-            end)
-        end
-    end)
-
-    Frame.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-            dragInput = input
-        end
-    end)
-
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local delta = input.Position - dragStart
-            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-
-    -- Проверка валидности монеты
-    local function isValidPart(part)
-        local pos = part.Position
-        if not pos or pos.X ~= pos.X or pos.Y ~= pos.Y or pos.Z ~= pos.Z then
-            return false
-        end
-        if pos.Y < 0 then
-            return false
-        end
-        return true
-    end
-
-    -- Поиск ближайшей монеты в пределах maxDistance
-    local function getNearestCoin()
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
-        local hrp = char.HumanoidRootPart
-
-        local nearestCoin = nil
-        local nearestDistance = math.huge
-
-        for _, descendant in pairs(workspace:GetDescendants()) do
-            if descendant:IsA("Part") and descendant.Name == "Coin_Server" and isValidPart(descendant) then
-                local dist = (hrp.Position - descendant.Position).Magnitude
-                if dist < nearestDistance and dist <= maxDistance then
-                    nearestDistance = dist
-                    nearestCoin = descendant
-                end
-            end
-        end
-
-        return nearestCoin
-    end
-
-    -- Твин к части с таймаутом
-    local function tweenToPart(part)
-        local char = LocalPlayer.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-
-        local hrp = char.HumanoidRootPart
-        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
-        tween:Play()
-
-        local completed = false
-
-        tween.Completed:Connect(function()
-            completed = true
-        end)
-
-        local startTime = tick()
-        while not completed and tick() - startTime < tweenTime + 0.3 do
-            task.wait(0.05)
-        end
-
-        -- Если не успел долететь — твин прервется и мы продолжим к следующей монете
-    end
-
-    -- Функция фарма монет (ускоренный цикл)
-    local function coinFarm()
-        while getgenv().coinFarm do
-            local coin = getNearestCoin()
-            if coin then
-                tweenToPart(coin)
-                task.wait(0.05) -- минимальная пауза после твина
-            else
-                task.wait(0.3) -- чуть подождать, если монет нет рядом
-            end
-        end
-    end
-
-    -- Кнопка для включения/выключения
-    local toggled = false
-    Button.MouseButton1Click:Connect(function()
-        toggled = not toggled
-        getgenv().coinFarm = toggled
-
-        if toggled then
-            Button.Text = "AutoFarm: ON"
-            Button.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
-            task.spawn(coinFarm)
-        else
-            Button.Text = "AutoFarm: OFF"
-            Button.BackgroundColor3 = Color3.fromRGB(100, 40, 40)
-        end
-    end)
-end
+    -- Перемещение GUI (без изменений)
+    local dragging, dragInp

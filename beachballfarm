@@ -1,165 +1,62 @@
-if game.PlaceId == 142823291 then
-  -- [ Services ] --
-  local Players = game:GetService('Players')
-  local CoreGUI = game:GetService('CoreGui')
-  local TweenService = game:GetService('TweenService')
-  local UserInputService = game:GetService("UserInputService")
-  local LocalPlayer = Players.LocalPlayer
-  local tweenInfo = TweenInfo.new(2.9, Enum.EasingStyle.Linear)
+local function getDistance(pos1, pos2)
+  return (pos1 - pos2).Magnitude
+end
 
-  getgenv().coinFarm = false
+local function coinFarm()
+  local char = LocalPlayer.Character
+  local hrp = char and char:FindFirstChild("HumanoidRootPart")
+  if not hrp then return end
 
-  -- [ GUI ] --
-  local ScreenGui = Instance.new('ScreenGui')
-  local MainFrame = Instance.new('Frame')
-  local HeaderFrame = Instance.new('Frame')
-  local HeaderFix = Instance.new('Frame')
-  local Description = Instance.new('TextLabel')
-  local GameName = Instance.new('TextLabel')
-  local Icon = Instance.new('ImageLabel')
-  local CloseIcon = Instance.new('ImageButton')
-  local MainButton = Instance.new('TextButton')
+  local originPosition = hrp.CFrame -- Запомнили стартовую позицию
 
-  -- [ Functions ] --
-  local function MakeDraggable(gui)
-    local dragging, dragInput, dragStart, startPos
-    local function update(input)
-      local delta = input.Position - dragStart
-      gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-    gui.InputBegan:Connect(function(input)
-      if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = gui.Position
+  while getgenv().coinFarm do
+    local hrpPos = hrp.Position
+    local coinsInRange = {}
 
-        input.Changed:Connect(function()
-          if input.UserInputState == Enum.UserInputState.End then
-            dragging = false
-          end
-        end)
-      end
-    end)
-    gui.InputChanged:Connect(function(input)
-      if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
-        dragInput = input
-      end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-      if input == dragInput and dragging then
-        update(input)
-      end
-    end)
-  end
-
-  local function tweenToPart(part)
-    local char = LocalPlayer.Character
-    local hrp = char and char:FindFirstChild("HumanoidRootPart")
-    if hrp and part and part:IsDescendantOf(game) and part.Parent then
-      -- Проверяем, что позиция монеты не под землёй или не слишком низко (Y > 0)
-      if part.Position.Y > 0 then
-        local success, err = pcall(function()
-          local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
-          tween:Play()
-          tween.Completed:Wait()
-        end)
-        if not success then
-          warn("Tween error:", err)
-        end
-      else
-        warn("Монета слишком низко, пропускаем.")
-      end
-    else
-      warn("Монета недоступна или объект отсутствует.")
-    end
-  end
-
-  local function coinFarm()
-    while getgenv().coinFarm do
-      for _, descendant in pairs(workspace:GetDescendants()) do
-        if descendant:IsA("BasePart") and descendant.Name == "Coin_Server" then
-          if descendant.Parent then
-            tweenToPart(descendant)
-            task.wait(0.1)
-          end
+    -- Сканируем монеты в радиусе 150
+    for _, part in pairs(workspace:GetDescendants()) do
+      if part:IsA("BasePart") and part.Name == "Coin_Server" and part.Parent then
+        local dist = getDistance(hrpPos, part.Position)
+        if dist <= 150 and part.Position.Y > 0 then
+          table.insert(coinsInRange, {part=part, dist=dist})
         end
       end
-      task.wait(0.5)
     end
-  end
 
-  -- [ GUI setup ] --
-  ScreenGui.Name = 'QuantumixHUB'
-  ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-  ScreenGui.Parent = CoreGUI
+    -- Сортируем по дистанции (от ближней к дальней)
+    table.sort(coinsInRange, function(a,b)
+      return a.dist < b.dist
+    end)
 
-  local FrameCorner = Instance.new('UICorner')
-  MainFrame.Name = 'MainFrame'
-  MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-  MainFrame.BorderSizePixel = 0
-  MainFrame.AnchorPoint = Vector2.new(0.5, 0.5)
-  MainFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
-  MainFrame.Size = UDim2.new(0, 250, 0, 150)
-  MainFrame.Parent = ScreenGui
-  MakeDraggable(MainFrame)
-  FrameCorner.Parent = MainFrame
-  FrameCorner.CornerRadius = UDim.new(0, 10)
+    if #coinsInRange == 0 then
+      -- Если нет монет рядом, возвращаемся в стартовую точку плавно
+      local success, err = pcall(function()
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = originPosition})
+        tween:Play()
+        tween.Completed:Wait()
+      end)
+      if not success then warn("Tween error:", err) end
 
-  local HeaderCorner = Instance.new('UICorner')
-  HeaderFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-  HeaderFrame.BorderSizePixel = 0
-  HeaderFrame.Size = UDim2.new(1, 0, 0, 25)
-  HeaderFrame.Parent = MainFrame
-  HeaderCorner.Parent = HeaderFrame
-  HeaderCorner.CornerRadius = UDim.new(0, 10)
-
-  Description.BackgroundTransparency = 1
-  Description.Text = "MM2 COINFARM (QX)"
-  Description.Size = UDim2.new(1, -4, 0, 20)
-  Description.Position = UDim2.new(0, 4, 0, 55)
-  Description.TextSize = 20
-  Description.TextColor3 = Color3.fromRGB(255, 255, 255)
-  Description.TextXAlignment = Enum.TextXAlignment.Center
-  Description.Font = Enum.Font.Gotham
-  Description.Parent = MainFrame
-
-  GameName.BackgroundTransparency = 1
-  GameName.Text = game:GetService("MarketplaceService"):GetProductInfo(game.PlaceId).Name
-  GameName.Size = UDim2.new(1, -4, 0, 15)
-  GameName.Position = UDim2.new(0, 4, 0, 75)
-  GameName.TextSize = 10
-  GameName.TextColor3 = Color3.fromRGB(100, 100, 255)
-  GameName.TextXAlignment = Enum.TextXAlignment.Center
-  GameName.Font = Enum.Font.Gotham
-  GameName.Parent = MainFrame
-
-  local ButtonCorner = Instance.new('UICorner')
-  MainButton.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-  MainButton.BorderSizePixel = 0
-  MainButton.Text = "Working: OFF"
-  MainButton.TextColor3 = Color3.fromRGB(255, 100, 100)
-  MainButton.TextSize = 14
-  MainButton.Font = Enum.Font.Gotham
-  MainButton.Size = UDim2.new(1, -20, 0, 30)
-  MainButton.Position = UDim2.new(0, 10, 0, 110)
-  MainButton.Parent = MainFrame
-  ButtonCorner.Parent = MainButton
-  ButtonCorner.CornerRadius = UDim.new(0, 10)
-
-  local toggle = false
-
-  MainButton.MouseButton1Click:Connect(function()
-    toggle = not toggle
-    if toggle then
-      getgenv().coinFarm = true
-      MainButton.Text = "Working: ON"
-      MainButton.TextColor3 = Color3.fromRGB(100, 255, 100)
-      -- Запускаем фарм в отдельном потоке, чтобы не блокировать UI
-      task.spawn(coinFarm)
+      task.wait(1) -- Подождать немного перед следующим сканом
     else
-      getgenv().coinFarm = false
-      MainButton.Text = "Working: OFF"
-      MainButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+      -- Идём к каждой монете по очереди
+      for _, info in pairs(coinsInRange) do
+        if not getgenv().coinFarm then break end
+
+        local coin = info.part
+        if coin and coin.Parent then
+          local success, err = pcall(function()
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = coin.CFrame})
+            tween:Play()
+            tween.Completed:Wait()
+          end)
+          if not success then warn("Tween error:", err) end
+
+          task.wait(0.2) -- Небольшая пауза после достижения монеты
+        end
+      end
     end
-  end)
+
+    task.wait(0.3) -- Пауза перед новым циклом поиска монет
+  end
 end

@@ -1,27 +1,46 @@
 if game.PlaceId == 142823291 then
+    -- Services
     local Players = game:GetService('Players')
     local CoreGUI = game:GetService('CoreGui')
     local TweenService = game:GetService('TweenService')
     local UserInputService = game:GetService("UserInputService")
+    local Player = Players.LocalPlayer
+    local Character = Player.Character or Player.CharacterAdded:Wait()
+    local HumanoidRootPart = Character:WaitForChild("HumanoidRootPart")
+    local HIDEUI = get_hidden_gui or gethui
+    getgenv().coinFarm = false
+    local delay = 0.1 -- задержка между монетами
 
-    local plr = Players.LocalPlayer
-    local character = plr.Character or plr.CharacterAdded:Wait()
-    local humPart = character:WaitForChild("HumanoidRootPart")
+    -- Перехват смены персонажа
+    Player.CharacterAdded:Connect(function(char)
+        Character = char
+        HumanoidRootPart = char:WaitForChild("HumanoidRootPart")
+    end)
 
-    local function getMap()
-        for _, m in ipairs(game.Workspace:GetDescendants()) do
-            if m:IsA("Model") and m.Name == "CoinContainer" then
-                return m
-            end
+    -- GUI
+    local ScreenGui = Instance.new('ScreenGui')
+    local MainFrame = Instance.new('Frame')
+    local HeaderFrame = Instance.new('Frame')
+    local MainButton = Instance.new('TextButton')
+    local Description = Instance.new('TextLabel')
+
+    local function Hide_UI(gui)
+        if HIDEUI then
+            gui.Parent = HIDEUI()
+        elseif syn and syn.protect_gui then
+            syn.protect_gui(gui)
+            gui.Parent = CoreGUI
+        else
+            gui.Parent = CoreGUI
         end
-        return nil
     end
 
     local function MakeDraggable(gui)
         local dragging, dragInput, dragStart, startPos
         local function update(input)
             local delta = input.Position - dragStart
-            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            gui.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X,
+                                     startPos.Y.Scale, startPos.Y.Offset + delta.Y)
         end
         gui.InputBegan:Connect(function(input)
             if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -29,7 +48,9 @@ if game.PlaceId == 142823291 then
                 dragStart = input.Position
                 startPos = gui.Position
                 input.Changed:Connect(function()
-                    if input.UserInputState == Enum.UserInputState.End then dragging = false end
+                    if input.UserInputState == Enum.UserInputState.End then
+                        dragging = false
+                    end
                 end)
             end
         end)
@@ -39,108 +60,99 @@ if game.PlaceId == 142823291 then
             end
         end)
         UserInputService.InputChanged:Connect(function(input)
-            if input == dragInput and dragging then update(input) end
+            if input == dragInput and dragging then
+                update(input)
+            end
         end)
     end
 
-    local ScreenGui = Instance.new("ScreenGui", CoreGUI)
+    -- Создание GUI
+    ScreenGui.Name = "CoinFarmGUI"
     ScreenGui.ResetOnSpawn = false
-    ScreenGui.Name = "BeachBallFarm"
+    Hide_UI(ScreenGui)
 
-    local Frame = Instance.new("Frame", ScreenGui)
-    Frame.Size = UDim2.new(0, 200, 0, 120)
-    Frame.Position = UDim2.new(0.5, -100, 0.5, -60)
-    Frame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
-    Frame.BorderSizePixel = 0
-    MakeDraggable(Frame)
-    Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
+    MainFrame.Size = UDim2.new(0, 250, 0, 130)
+    MainFrame.Position = UDim2.new(0.5, -125, 0.5, -65)
+    MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+    MainFrame.Parent = ScreenGui
+    MakeDraggable(MainFrame)
 
-    local Title = Instance.new("TextLabel", Frame)
-    Title.Text = "MM2 BeachBall Farm"
-    Title.Size = UDim2.new(1, 0, 0, 30)
-    Title.BackgroundTransparency = 1
-    Title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    Title.Font = Enum.Font.Gotham
-    Title.TextSize = 16
+    local uicorner = Instance.new("UICorner", MainFrame)
+    uicorner.CornerRadius = UDim.new(0, 10)
 
-    local Toggle = Instance.new("TextButton", Frame)
-    Toggle.Size = UDim2.new(1, -20, 0, 35)
-    Toggle.Position = UDim2.new(0, 10, 0, 60)
-    Toggle.Text = "Working: OFF"
-    Toggle.Font = Enum.Font.Gotham
-    Toggle.TextSize = 14
-    Toggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-    Toggle.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
-    Instance.new("UICorner", Toggle).CornerRadius = UDim.new(0, 8)
+    HeaderFrame.Size = UDim2.new(1, 0, 0, 25)
+    HeaderFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+    HeaderFrame.Parent = MainFrame
+    Instance.new("UICorner", HeaderFrame).CornerRadius = UDim.new(0, 10)
 
-    local farming = false
-    local delay = 1.2
+    Description.Text = "MM2 BeachBall Farm"
+    Description.Size = UDim2.new(1, 0, 0, 25)
+    Description.Position = UDim2.new(0, 0, 0, 30)
+    Description.BackgroundTransparency = 1
+    Description.TextColor3 = Color3.fromRGB(255, 255, 255)
+    Description.Font = Enum.Font.Gotham
+    Description.TextSize = 14
+    Description.Parent = MainFrame
 
-    local function StartFarm()
-        while farming do
-            local map = getMap()
-            if map then
-                local coins = {}
-                for _, coin in ipairs(map:GetChildren()) do
-                    if coin:IsA("Part") and coin.Name == "Coin_Server" and coin:GetAttribute("CoinID") == "BeachBall" then
-                        local cv = coin:FindFirstChild("CoinVisual")
-                        if cv and cv.Transparency ~= 1 then
-                            table.insert(coins, coin)
-                        end
+    MainButton.Size = UDim2.new(1, -20, 0, 40)
+    MainButton.Position = UDim2.new(0, 10, 0, 80)
+    MainButton.Text = "Working: OFF"
+    MainButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+    MainButton.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    MainButton.Font = Enum.Font.Gotham
+    MainButton.TextSize = 14
+    MainButton.Parent = MainFrame
+    Instance.new("UICorner", MainButton).CornerRadius = UDim.new(0, 10)
+
+    -- Логика фарма
+    local function getNearestCoin()
+        local nearestCoin, nearestDistance = nil, math.huge
+        for _, descendant in pairs(workspace:GetDescendants()) do
+            if descendant:IsA("Part") and descendant.Name == "Coin_Server" then
+                if descendant:GetAttribute("CoinID") == "BeachBall" then
+                    local dist = (HumanoidRootPart.Position - descendant.Position).Magnitude
+                    if dist < nearestDistance and dist < 200 then -- максимальная дистанция поиска
+                        nearestCoin = descendant
+                        nearestDistance = dist
                     end
                 end
+            end
+        end
+        return nearestCoin
+    end
 
-                table.sort(coins, function(a, b)
-                    return (humPart.Position - a.Position).Magnitude < (humPart.Position - b.Position).Magnitude
-                end)
+    local function farmCoins()
+        task.spawn(function()
+            while getgenv().coinFarm do
+                local coin = getNearestCoin()
+                if coin and HumanoidRootPart then
+                    local distance = (HumanoidRootPart.Position - coin.Position).Magnitude
+                    local tweenTime = math.clamp(distance / 60, 0.3, 1.2)
 
-                for _, coin in ipairs(coins) do
-                    if not farming then break end
-                    if not humPart or not humPart.Parent then
-                        character = plr.Character or plr.CharacterAdded:Wait()
-                        humPart = character:WaitForChild("HumanoidRootPart")
-                    end
-                    for _, p in pairs(character:GetChildren()) do
-                        if p:IsA("BasePart") and p.CanCollide then
-                            p.CanCollide = false
-                        end
-                    end
-                    local goal = {CFrame = coin.CFrame * CFrame.new(0, 5, 0)}
-                    local dist = (humPart.Position - coin.Position).Magnitude
-                    local tweenTime = math.clamp(dist / 55, 0.2, 1.2)
-                    local tween = TweenService:Create(humPart, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), goal)
+                    local tween = TweenService:Create(HumanoidRootPart, TweenInfo.new(tweenTime, Enum.EasingStyle.Linear), {
+                        CFrame = coin.CFrame + Vector3.new(0, 4, 0)
+                    })
+
                     tween:Play()
                     tween.Completed:Wait()
                     task.wait(delay)
+                else
+                    task.wait(0.3)
                 end
             end
-            task.wait(0.25)
-        end
-    end
-
-    Toggle.MouseButton1Click:Connect(function()
-        farming = not farming
-        if farming then
-            Toggle.Text = "Working: ON"
-            Toggle.TextColor3 = Color3.fromRGB(100, 255, 100)
-            task.spawn(StartFarm)
-        else
-            Toggle.Text = "Working: OFF"
-            Toggle.TextColor3 = Color3.fromRGB(255, 100, 100)
-        end
-    end)
-
-    -- Anti-AFK
-    local GC = getconnections or get_signal_cons
-    if GC then
-        for _,v in pairs(GC(plr.Idled)) do
-            if v.Disable then v:Disable() elseif v.Disconnect then v:Disconnect() end
-        end
-    else
-        local vu = cloneref(game:GetService("VirtualUser"))
-        plr.Idled:Connect(function()
-            vu:CaptureController()
-            vu:ClickButton2(Vector2.new())
         end)
     end
+
+    -- Кнопка вкл/выкл
+    MainButton.MouseButton1Click:Connect(function()
+        getgenv().coinFarm = not getgenv().coinFarm
+        if getgenv().coinFarm then
+            MainButton.Text = "Working: ON"
+            MainButton.TextColor3 = Color3.fromRGB(100, 255, 100)
+            farmCoins()
+        else
+            MainButton.Text = "Working: OFF"
+            MainButton.TextColor3 = Color3.fromRGB(255, 100, 100)
+        end
+    end)
 end

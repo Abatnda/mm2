@@ -90,17 +90,18 @@ if game.PlaceId == 142823291 then
                 if not coin or not coin:IsDescendantOf(workspace) then continue end
 
                 local dist = (hrp.Position - coin.Position).Magnitude
-                if dist < 4 then continue end -- рядом уже
+                if dist < 4 then continue end
 
-                -- ✅ Безопасное время полёта: больше 0.85 (не кикает)
-                local safeSpeed = 42 -- studs/second
-                local tTime = math.clamp(dist / safeSpeed, 0.85, 1.4)
+                -- ⚠️ Умеренно безопасная скорость и tweenTime
+                local safeSpeed = 35
+                local tTime = math.clamp(dist / safeSpeed, 1.05, 1.5)
 
                 local goal = {CFrame = coin.CFrame * CFrame.new(0, 5, 0)}
                 local tween = TweenService:Create(hrp, TweenInfo.new(tTime, Enum.EasingStyle.Linear), goal)
                 tween:Play()
                 tween.Completed:Wait()
-                task.wait(0.08)
+
+                task.wait(0.12) -- пауза между твинами
             end
         end
     end

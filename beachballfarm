@@ -6,9 +6,11 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local tweenInfo = TweenInfo.new(2.9, Enum.EasingStyle.Linear)
+    local maxDistance = 150 -- Максимальное расстояние для твина
+    local tweenTime = 1.2   -- Время твина (уменьшил с 2.9)
+    local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
 
-    -- Создание GUI
+    -- GUI создание (оставляю как у тебя, без изменений)
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MM2Farm"
     ScreenGui.ResetOnSpawn = false
@@ -79,7 +81,7 @@ if game.PlaceId == 142823291 then
         return true
     end
 
-    -- Поиск ближайшей монеты
+    -- Поиск ближайшей монеты в пределах maxDistance
     local function getNearestCoin()
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
@@ -91,7 +93,7 @@ if game.PlaceId == 142823291 then
         for _, descendant in pairs(workspace:GetDescendants()) do
             if descendant:IsA("Part") and descendant.Name == "Coin_Server" and isValidPart(descendant) then
                 local dist = (hrp.Position - descendant.Position).Magnitude
-                if dist < nearestDistance then
+                if dist < nearestDistance and dist <= maxDistance then
                     nearestDistance = dist
                     nearestCoin = descendant
                 end
@@ -101,31 +103,38 @@ if game.PlaceId == 142823291 then
         return nearestCoin
     end
 
-    -- Твин к части
+    -- Твин к части с таймаутом
     local function tweenToPart(part)
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
 
         local hrp = char.HumanoidRootPart
-        local success, err = pcall(function()
-            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
-            tween:Play()
-            tween.Completed:Wait()
+        local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
+        tween:Play()
+
+        local completed = false
+
+        tween.Completed:Connect(function()
+            completed = true
         end)
-        if not success then
-            warn("Tween error:", err)
+
+        local startTime = tick()
+        while not completed and tick() - startTime < tweenTime + 0.3 do
+            task.wait(0.05)
         end
+
+        -- Если не успел долететь — твин прервется и мы продолжим к следующей монете
     end
 
-    -- Функция фарма монет
+    -- Функция фарма монет (ускоренный цикл)
     local function coinFarm()
         while getgenv().coinFarm do
             local coin = getNearestCoin()
             if coin then
                 tweenToPart(coin)
-                task.wait(0.1)
+                task.wait(0.05) -- минимальная пауза после твина
             else
-                task.wait(1)
+                task.wait(0.3) -- чуть подождать, если монет нет рядом
             end
         end
     end

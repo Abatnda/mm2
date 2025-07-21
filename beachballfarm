@@ -6,7 +6,7 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 150 -- Максимальное расстояние для твина
+    local maxDistance = 200 -- Максимальное расстояние для твина
     local tweenTime = 0.6   -- Время твина (уменьшил с 2.9)
     local tweenInfo = TweenInfo.new(tweenTime, Enum.EasingStyle.Linear)
 

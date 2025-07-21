@@ -6,11 +6,10 @@ if game.PlaceId == 142823291 then
     local LocalPlayer = Players.LocalPlayer
 
     getgenv().coinFarm = false
-    local maxDistance = 1000 -- Увеличено: будет искать монеты на всей карте
-    local stepDistance = 25 -- Один шаг твина
-    local stepTime = 0.12 -- Время одного шага
+    local maxDistance = 350
+    local tweenTime = 0.6 -- безопасное значение
+    local segmentLength = 60 -- шаг твина
 
-    -- GUI
     local ScreenGui = Instance.new("ScreenGui")
     ScreenGui.Name = "MM2Farm"
     ScreenGui.ResetOnSpawn = false
@@ -23,6 +22,7 @@ if game.PlaceId == 142823291 then
     Frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
     Frame.BorderSizePixel = 0
     Frame.Parent = ScreenGui
+
     Instance.new("UICorner", Frame).CornerRadius = UDim.new(0, 10)
 
     local Button = Instance.new("TextButton")
@@ -34,19 +34,19 @@ if game.PlaceId == 142823291 then
     Button.TextSize = 14
     Button.Text = "AutoFarm: OFF"
     Button.Parent = Frame
+
     Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
 
-    -- Drag GUI
+    -- GUI Drag
     local dragging, dragInput, dragStart, startPos
+
     Frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
             dragging = true
             dragStart = input.Position
             startPos = Frame.Position
             input.Changed:Connect(function()
-                if input.UserInputState == Enum.UserInputState.End then
-                    dragging = false
-                end
+                if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
         end
     end)
@@ -64,69 +64,73 @@ if game.PlaceId == 142823291 then
         end
     end)
 
-    -- Проверка валидности позиции
     local function isValidPart(part)
         local pos = part.Position
-        return pos and pos.Y > 0 and pos.X == pos.X and pos.Y == pos.Y and pos.Z == pos.Z
+        return pos and pos.Y >= 0 and pos.X == pos.X and pos.Y == pos.Y and pos.Z == pos.Z
     end
 
-    -- Поиск ближайшей монеты
     local function getNearestCoin()
         local char = LocalPlayer.Character
-        if not (char and char:FindFirstChild("HumanoidRootPart")) then return nil end
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
         local hrp = char.HumanoidRootPart
 
-        local nearest, minDist = nil, math.huge
-        for _, part in pairs(workspace:GetDescendants()) do
-            if part:IsA("Part") and part.Name == "Coin_Server" and isValidPart(part) then
-                local dist = (hrp.Position - part.Position).Magnitude
-                if dist < minDist and dist <= maxDistance then
-                    minDist = dist
-                    nearest = part
+        local nearestCoin = nil
+        local nearestDistance = math.huge
+
+        for _, obj in pairs(workspace:GetDescendants()) do
+            if obj:IsA("Part") and obj.Name == "Coin_Server" and isValidPart(obj) then
+                local dist = (hrp.Position - obj.Position).Magnitude
+                if dist < nearestDistance and dist <= maxDistance then
+                    nearestDistance = dist
+                    nearestCoin = obj
                 end
             end
         end
-        return nearest
+
+        return nearestCoin
     end
 
-    -- Умный Tween с шагами
-    local function smartTweenToPart(target)
+    local function tweenToPartSmooth(targetPart)
         local char = LocalPlayer.Character
-        if not (char and char:FindFirstChild("HumanoidRootPart")) then return end
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
         local hrp = char.HumanoidRootPart
-        local distance = (hrp.Position - target.Position).Magnitude
-        local steps = math.max(1, math.ceil(distance / stepDistance))
-        local offset = (target.Position - hrp.Position) / steps
+        local startPos = hrp.Position
+        local endPos = targetPart.Position
+        local totalDistance = (endPos - startPos).Magnitude
+
+        local steps = math.max(1, math.ceil(totalDistance / segmentLength))
+        local timePerStep = tweenTime * (segmentLength / totalDistance)
 
         for i = 1, steps do
-            if not getgenv().coinFarm then break end
-            local nextPos = hrp.Position + offset
-            local tween = TweenService:Create(hrp, TweenInfo.new(stepTime, Enum.EasingStyle.Linear), {
-                CFrame = CFrame.new(nextPos)
-            })
+            if not getgenv().coinFarm then return end
+
+            local nextPosition = startPos + (endPos - startPos) * (i / steps)
+            local info = TweenInfo.new(math.clamp(timePerStep, 0.05, tweenTime), Enum.EasingStyle.Linear)
+            local tween = TweenService:Create(hrp, info, {CFrame = CFrame.new(nextPosition)})
             tween:Play()
             tween.Completed:Wait()
             task.wait(0.01)
         end
     end
 
-    -- Основной цикл фарма
     local function coinFarm()
         while getgenv().coinFarm do
             local coin = getNearestCoin()
             if coin then
-                smartTweenToPart(coin)
-                task.wait(0.05)
+                tweenToPartSmooth(coin)
             else
-                task.wait(0.3)
+                task.wait(0.2)
             end
         end
     end
 
-    -- Включение и выключение
+    local toggled = false
     Button.MouseButton1Click:Connect(function()
-        getgenv().coinFarm = not getgenv().coinFarm
-        if getgenv().coinFarm then
+        toggled = not toggled
+        getgenv().coinFarm = toggled
+
+        if toggled then
             Button.Text = "AutoFarm: ON"
             Button.BackgroundColor3 = Color3.fromRGB(40, 100, 40)
             task.spawn(coinFarm)

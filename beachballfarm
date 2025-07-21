@@ -67,32 +67,70 @@ if game.PlaceId == 142823291 then
         end
     end)
 
-    -- Функция фарма
+    -- Проверка валидности монеты
+    local function isValidPart(part)
+        local pos = part.Position
+        if not pos or pos.X ~= pos.X or pos.Y ~= pos.Y or pos.Z ~= pos.Z then
+            return false
+        end
+        if pos.Y < 0 then
+            return false
+        end
+        return true
+    end
+
+    -- Поиск ближайшей монеты
+    local function getNearestCoin()
+        local char = LocalPlayer.Character
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return nil end
+        local hrp = char.HumanoidRootPart
+
+        local nearestCoin = nil
+        local nearestDistance = math.huge
+
+        for _, descendant in pairs(workspace:GetDescendants()) do
+            if descendant:IsA("Part") and descendant.Name == "Coin_Server" and isValidPart(descendant) then
+                local dist = (hrp.Position - descendant.Position).Magnitude
+                if dist < nearestDistance then
+                    nearestDistance = dist
+                    nearestCoin = descendant
+                end
+            end
+        end
+
+        return nearestCoin
+    end
+
+    -- Твин к части
     local function tweenToPart(part)
         local char = LocalPlayer.Character
-        if char and char:FindFirstChild("HumanoidRootPart") then
-            local tween = TweenService:Create(
-                char.HumanoidRootPart,
-                tweenInfo,
-                {CFrame = part.CFrame}
-            )
+        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+
+        local hrp = char.HumanoidRootPart
+        local success, err = pcall(function()
+            local tween = TweenService:Create(hrp, tweenInfo, {CFrame = part.CFrame})
             tween:Play()
             tween.Completed:Wait()
+        end)
+        if not success then
+            warn("Tween error:", err)
         end
     end
 
+    -- Функция фарма монет
     local function coinFarm()
-        while getgenv().coinFarm and task.wait() do
-            for _, descendant in pairs(workspace:GetDescendants()) do
-                if descendant:IsA("Part") and descendant.Name == "Coin_Server" then
-                    tweenToPart(descendant)
-                    task.wait(0.1)
-                end
+        while getgenv().coinFarm do
+            local coin = getNearestCoin()
+            if coin then
+                tweenToPart(coin)
+                task.wait(0.1)
+            else
+                task.wait(1)
             end
         end
     end
 
-    -- Кнопка
+    -- Кнопка для включения/выключения
     local toggled = false
     Button.MouseButton1Click:Connect(function()
         toggled = not toggled

@@ -6,8 +6,8 @@ if game.PlaceId == 142823291 then
 
     getgenv().coinFarm = false
     local maxDistance = 200 -- дальность видимости монет
-    local stepSize = 8 -- шаг телепорта (более безопасный)
-    local waitPerStep = 0.05
+    local stepSize = 11 -- шаг телепорта (безопасный)
+    local waitPerStep = 0.03
 
     -- GUI
     local ScreenGui = Instance.new("ScreenGui")
@@ -32,8 +32,7 @@ if game.PlaceId == 142823291 then
     Label.TextColor3 = Color3.fromRGB(200, 200, 200)
     Label.Font = Enum.Font.GothamBold
     Label.TextSize = 14
-    Label.Text = "Vefarm MM2 | Summer"
-    Label.TextStrokeTransparency = 0.7
+    Label.Text = "Vexfarm mm2 | summer"
     Label.Parent = Frame
 
     local Button = Instance.new("TextButton")
@@ -47,7 +46,7 @@ if game.PlaceId == 142823291 then
     Button.Parent = Frame
     Instance.new("UICorner", Button).CornerRadius = UDim.new(0, 8)
 
-    -- GUI Drag
+    -- GUI Dragging
     local dragging, dragInput, dragStart, startPos
     Frame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
@@ -69,11 +68,14 @@ if game.PlaceId == 142823291 then
     UserInputService.InputChanged:Connect(function(input)
         if input == dragInput and dragging then
             local delta = input.Position - dragStart
-            Frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+            Frame.Position = UDim2.new(
+                startPos.X.Scale, startPos.X.Offset + delta.X,
+                startPos.Y.Scale, startPos.Y.Offset + delta.Y
+            )
         end
     end)
 
-    -- Безопасный быстрый "прыгающий" обход с рандомом и паузами
+    -- Безопасный быстрый "прыгающий" обход
     local function stepBypassTo(pos)
         local char = LocalPlayer.Character
         if not char or not char:FindFirstChild("HumanoidRootPart") then return end
@@ -81,13 +83,10 @@ if game.PlaceId == 142823291 then
         local distance = (hrp.Position - pos).Magnitude
         local direction = (pos - hrp.Position).Unit
         local steps = math.ceil(distance / stepSize)
-        for i = 1, steps do
+        for _ = 1, steps do
             local stepPos = hrp.Position + direction * math.min(stepSize, (pos - hrp.Position).Magnitude)
             hrp.CFrame = CFrame.new(stepPos)
-            task.wait(waitPerStep + math.random() * 0.01) -- небольшой рандом
-            if i % 5 == 0 then
-                task.wait(0.1) -- пауза каждые 5 шагов
-            end
+            task.wait(waitPerStep)
         end
     end
 

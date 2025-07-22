@@ -12,7 +12,7 @@ local rootPart = character:WaitForChild("HumanoidRootPart")
 
 local visitedPositions = {}
 local isActive = false
-local flySpeed = 15
+local flySpeed = 24
 local collected = 0
 local startTime = 0
 local antiAFK = false

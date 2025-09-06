@@ -354,19 +354,14 @@ game.Players.PlayerAdded:Connect(function(player)
     end
 end)
 
--- [ JobId Reconnect System ] --
-local TeleportService = game:GetService("TeleportService")
-local PlaceId = 126884695634066 -- твой PlaceId
-
--- сохраняем JobId при неудачном телепорте
-TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,v)
+game:GetService("TeleportService").TeleportInitFailed:Connect(function(_,_,_,_,v)
     queue_on_teleport(string.format([[getgenv().JobId = "%s"]], v.ServerInstanceId))
 end)
 
--- пробуем телепортнуться несколько раз
+
 for _ = 1, 2 do
     task.spawn(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, game.JobId)
+        game:GetService("TeleportService"):TeleportToPlaceInstance(126884695634066, game.JobId)
     end)
     task.wait()
 end

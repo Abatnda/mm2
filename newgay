@@ -1,47 +1,55 @@
-local TeleportService = game:GetService("TeleportService")
-local PlaceId = 126884695634066 -- сюда можно поставить нужный PlaceId
-
--- Перехватчик + перезаходчик в одном
-TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
-    local serverId = teleportResult.ServerInstanceId
-
-    -- Сохраняем JobId на следующий заход
-    queue_on_teleport(string.format([[getgenv().JobId = "%s"]], serverId))
-
-    -- Логируем в Discord
-    task.spawn(function()
+game:GetService("TeleportService").TeleportInitFailed:Connect(function(_,_,_,_,v)
+    local serverId = v.ServerInstanceId
+    queue_on_teleport(string.format([[
+        getgenv().JobId = "%s"
+        
         task.wait(2)
-        local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4" -- твой вебхук
-        local message = "Сервер сгенерирован! JobId: `" .. serverId .. "`"
-        local data = {["content"] = message, ["username"] = "JobId Logger"}
+        
+        local webhookUrl = "231321"
+        local message = "Сервер сгенерирован! JobId: `" .. getgenv().JobId .. "`"
+        local data = {
+            ["content"] = message,
+            ["username"] = "JobId Logger"
+        }
+        
         local jsonData = game:GetService("HttpService"):JSONEncode(data)
-
+        
+        -- Попробуем разные методы отправки
         local success, response = pcall(function()
             return syn.request({
                 Url = webhookUrl,
                 Method = "POST",
-                Headers = {["Content-Type"] = "application/json"},
+                Headers = {
+                    ["Content-Type"] = "application/json"
+                },
                 Body = jsonData
             })
         end)
-
+        
+        if not success then
+            success, response = pcall(function()
+                return request({
+                    Url = webhookUrl,
+                    Method = "POST",
+                    Headers = {
+                        ["Content-Type"] = "application/json"
+                    },
+                    Body = jsonData
+                })
+            end)
+        end
+        
         if not success then
             warn("Ошибка отправки в Discord: " .. tostring(response))
         else
             print("JobId успешно отправлен в Discord!")
         end
-    end)
-
-    -- Перезаход на пойманный сервер
-    task.spawn(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
-    end)
+    ]], serverId))
 end)
 
--- Начальный телепорт (если JobId уже есть, то сразу подключаемся)
 for _ = 1, 2 do
     task.spawn(function()
-        TeleportService:TeleportToPlaceInstance(PlaceId, game.JobId)
+        game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, game.JobId)
     end)
     task.wait()
 end

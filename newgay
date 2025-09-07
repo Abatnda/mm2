@@ -11,7 +11,7 @@ TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
     -- Логируем в Discord
     task.spawn(function()
         task.wait(2)
-        local webhookUrl = "https://discord.com/api/webhooks/..." -- твой вебхук
+        local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4" -- твой вебхук
         local message = "Сервер сгенерирован! JobId: `" .. serverId .. "`"
         local data = {["content"] = message, ["username"] = "JobId Logger"}
         local jsonData = game:GetService("HttpService"):JSONEncode(data)

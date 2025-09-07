@@ -5,7 +5,7 @@ game:GetService("TeleportService").TeleportInitFailed:Connect(function(_,_,_,_,v
         
         task.wait(2)
         
-        local webhookUrl = "231321"
+        local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
         local message = "Сервер сгенерирован! JobId: `" .. getgenv().JobId .. "`"
         local data = {
             ["content"] = message,

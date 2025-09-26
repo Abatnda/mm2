@@ -199,37 +199,77 @@ local function isAllowedByCategory(name)
 end
 
 -- =============================
--- Отправка вебхука
+-- Отправка вебхука (устойчиво)
 -- =============================
-local function sendWebhook(payload)
-	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then
-		return
-	end
-	local json = HttpService:JSONEncode(payload)
-	local request = (syn and syn.request) or (http and http.request) or (http_request) or (request)
-	if typeof(request) == "function" then
-		pcall(function()
-			request({
+local function tryExploitRequest(json)
+	local req = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(req) == "function" then
+		local ok, res = pcall(function()
+			return req({
 				Url = WEBHOOK_URL,
 				Method = "POST",
 				Headers = { ["Content-Type"] = "application/json" },
 				Body = json,
 			})
 		end)
-		return
+		if ok then
+			if typeof(res) == "table" then
+				print(string.format("[BrainrotScanner] Webhook exploit status: %s", tostring(res.StatusCode or res.status or "unknown")))
+			end
+			return true
+		else
+			print("[BrainrotScanner] Exploit request failed")
+		end
 	end
-	pcall(function()
+	return false
+end
+
+local function tryHttpServiceRequest(json)
+	-- Попытка через RequestAsync
+	local ok1, res1 = pcall(function()
+		return HttpService:RequestAsync({
+			Url = WEBHOOK_URL,
+			Method = "POST",
+			Headers = { ["Content-Type"] = "application/json" },
+			Body = json,
+		})
+	end)
+	if ok1 and res1 and res1.Success then
+		print(string.format("[BrainrotScanner] Webhook HTTP status: %s", tostring(res1.StatusCode)))
+		return true
+	end
+	-- Попытка через PostAsync
+	local ok2, err2 = pcall(function()
 		HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
 	end)
+	if ok2 then
+		print("[BrainrotScanner] Webhook PostAsync sent")
+		return true
+	else
+		print("[BrainrotScanner] Webhook PostAsync failed")
+	end
+	return false
+end
+
+local function sendWebhook(payload)
+	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then
+		return
+	end
+	local json = HttpService:JSONEncode(payload)
+	if tryExploitRequest(json) then return end
+	tryHttpServiceRequest(json)
 end
 
 local function postDiscordSimple(content)
 	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then return end
-	local truncated = content
-	if #truncated > 1900 then
-		truncated = string.sub(truncated, 1, 1900) .. "..."
+	-- Разбиваем на части по ~1800 символов
+	local MAX = 1800
+	local i = 1
+	while i <= #content do
+		local chunk = string.sub(content, i, math.min(i + MAX - 1, #content))
+		sendWebhook({ content = "```\n" .. chunk .. "\n```" })
+		i = i + MAX
 	end
-	sendWebhook({ content = "```\n" .. truncated .. "\n```" })
 end
 
 -- =============================
@@ -314,13 +354,7 @@ local function postCombinedAllPlots()
 	end
 	if #sections > 0 then
 		local body = table.concat(sections, "\n\n")
-		if WEBHOOK_URL ~= nil and WEBHOOK_URL ~= "" then
-			local truncated = body
-			if #truncated > 1900 then
-				truncated = string.sub(truncated, 1, 1900) .. "..."
-			end
-			sendWebhook({ content = "```\n" .. truncated .. "\n```" })
-		end
+		postDiscordSimple(body)
 	end
 end
 
@@ -336,7 +370,13 @@ local batchScheduled = false
 local function scheduleBatch()
 	if batchScheduled then return end
 	batchScheduled = true
-	task.delay(0.5, function()
+	local delayFn = (typeof(task) == "table" and task.delay) and task.delay or function(sec, fn)
+		spawn(function()
+			wait(sec)
+			fn()
+		end)
+	end
+	delayFn(0.5, function()
 		batchScheduled = false
 		postCombinedAllPlots()
 	end)

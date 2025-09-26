@@ -100,17 +100,17 @@ local CANONICAL_BRAINROT_NAMES = {
 	"Quivioli Ameleonni",
 	"Strawberry Elephant",
 	"Agarrini La Palini",
-    "La Sahur Combinasion",
-    "La Extinct Grande",
-    "67",
-    "Ketchuru and Musturu",
-    "Garama and Madundung",
-    "Ketupat Kepat",
-    "Chicleteira Bicicleteira",
-    "Graipuss Medussi",
-    "Mariachi Corazoni",
-    "Celularcini Viciosini",
-    "Los Tungtungtungcitos",
+	"La Sahur Combinasion",
+	"La Extinct Grande",
+	"67",
+	"Ketchuru and Musturu",
+	"Garama and Madundung",
+	"Ketupat Kepat",
+	"Chicleteira Bicicleteira",
+	"Graipuss Medussi",
+	"Mariachi Corazoni",
+	"Celularcini Viciosini",
+	"Los Tungtungtungcitos",
 }
 
 -- Разрешенные категории (строки, встречающиеся в именах после Mythic)
@@ -198,6 +198,9 @@ local function isAllowedByCategory(name)
 	return true
 end
 
+-- =============================
+-- Детекция брейнротов
+-- =============================
 local function isBrainrotInstance(inst)
 	if not inst then return false end
 	local canonical = getCanonicalMatch(inst.Name)
@@ -252,7 +255,7 @@ local function formatConsoleReport(plot, ownerName, entries)
 	local header = string.format("[BrainrotScanner] Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries)
 	print(header)
 	for i, e in ipairs(entries) do
-		local line = string.format("  #%d [%s] %s | %s", i, e.class, e.name, e.path)
+		local line = string.format("  #%d %s", i, e.name)
 		print(line)
 	end
 end
@@ -302,7 +305,7 @@ local function reportPlot(plot, entries)
 		local lines = {}
 		table.insert(lines, string.format("Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries))
 		for i, e in ipairs(entries) do
-			table.insert(lines, string.format("#%d [%s] %s\n%s", i, e.class, e.name, e.path))
+			table.insert(lines, string.format("#%d %s", i, e.name))
 		end
 		postDiscordSimple(table.concat(lines, "\n"))
 	end

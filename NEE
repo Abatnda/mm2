@@ -334,7 +334,8 @@ local function buildPlotSection(plot)
 	local entries = collectBrainrotsInPlot(plot)
 	if #entries == 0 then return nil end
 	local lines = {}
-	table.insert(lines, string.format("Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries))
+	local plotLabel = ownerName and ownerName or plot.Name
+	table.insert(lines, string.format("Плот: %s | найдено: %d", plotLabel, #entries))
 	for i, e in ipairs(entries) do
 		table.insert(lines, string.format("#%d %s", i, e.name))
 	end

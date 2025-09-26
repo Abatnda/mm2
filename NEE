@@ -1,1 +1,372 @@
-п
+local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+
+-- =============================
+-- Конфиг
+-- =============================
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- Вставь сюда Discord/Webhook URL или оставь пустым, чтобы не отправлять
+
+-- Канонические названия брейнротов (с заглавными буквами для вывода)
+local CANONICAL_BRAINROT_NAMES = {
+	"Los Tralaleritos",
+	"Las Tralaleritas",
+	"La Cucaracha",
+	"Pot Hotspot",
+	"Nooo My Hotspot",
+	"Los Nooo My Hotspotsitos",
+	"Los Hotspotsitos",
+	"Los Chicleteiras",
+	"Los Tipi Tacos",
+	"Los Orcalitos",
+	"Los Matteos",
+	"Los Bros",
+	"Los Noobinis",
+	"Los Crocodillitos",
+	"Los Tacoritas",
+	"Las Vaquitas Saturnitas",
+	"La Vacca Saturno Saturnita",
+	"Nuclearo Dinossauro",
+	"Chimpanzini Bananini",
+	"Chimpanzini Spiderini",
+	"Frigo Camelo",
+	"Elefanto Frigo",
+	"Gorillo Watermelondrillo",
+	"Rhino Toasterino",
+	"Sigma Boy",
+	"Sigma Girl",
+	"Skibidi",
+	"Tung Tung Tung Sahur",
+	"Ta Ta Ta Ta Sahur",
+	"Job Job Job Sahur",
+	"To To To Sahur",
+	"Ti Ti Ti Sahur",
+	"Esok Sekolah",
+	"Tictac Sahur",
+	"Tim Cheese",
+	"Fluriflura",
+	"Talpa Di Fero",
+	"Pipi Kiwi",
+	"Pipi Potato",
+	"Pipi Corni",
+	"Pipi Avocado",
+	"Gorillo Subwoofero",
+	"Gattatino Nyanino",
+	"Piccione Macchina",
+	"Piccionetta Machina",
+	"Orcalero Orcala",
+	"Orcalita Orcala",
+	"Brr Brr Patapim",
+	"Brri Brri Bicus Dicus Bombicus",
+	"Bambini Crostini",
+	"Bisonte Giuppitere",
+	"Torrtuginni Dragonfrutini",
+	"Las Sis",
+	"La Grande Combinasion",
+	"La Supreme Combinasion",
+	"Los Combinasionas",
+	"Gangster Footera",
+	"Bandito Bobritto",
+	"Bandito Axolito",
+	"Spioniro Golubiro",
+	"Bombardiro Crocodilo",
+	"Zibra Zubra Zibralini",
+	"Tigrilini Watermelini",
+	"Carrotini Brainini",
+	"Cocofanto Elefanto",
+	"Girafa Celestre",
+	"Tralalero Tralala",
+	"Tralalita Tralala",
+	"Trippi Troppi",
+	"Trippi Troppi Troppa Trippa",
+	"Trenostruzzo Turbo 3000",
+	"Trenostruzzo Turbo 4000",
+	"Ballerina Cappuccina",
+	"Ballerino Lololo",
+	"Bulbito Bandito Traktorito",
+	"Pakrahmatmamat",
+	"Cacasito Satalito",
+	"Tartaruga Cisterna",
+	"Mastodontico Telepiedone",
+	"La Karkerkar Combinasion",
+	"Dragon Cannelloni",
+	"Spaghetti Tualetti",
+	"Karkerkar Kurkur",
+	"Dug Dug Dug",
+	"Avocadini Antilopini",
+	"Avocadini Guffo",
+	"Orangutini Ananassini",
+	"Blueberrinni Octopusini",
+	"Quivioli Ameleonni",
+	"Strawberry Elephant",
+	"Agarrini La Palini",
+    "La Sahur Combinasion",
+    "La Extinct Grande",
+    "67",
+    "Ketchuru and Musturu",
+    "Garama and Madundung",
+    "Ketupat Kepat",
+    "Chicleteira Bicicleteira",
+    "Graipuss Medussi",
+    "Mariachi Corazoni",
+    "Celularcini Viciosini",
+    "Los Tungtungtungcitos",
+}
+
+-- Разрешенные категории (строки, встречающиеся в именах после Mythic)
+local ALLOW_CATEGORY_KEYWORDS = {
+	"brainrot god",
+	"secret",
+	"og",
+	"admin",
+	"exclusive",
+	"taco",
+	"craft machine",
+	"fuse machine",
+	"los ", -- Los/Las
+	"las ",
+	"ritual",
+	"unobtainable",
+	"removed",
+	"upcoming",
+}
+
+-- Запрещенные категории (до Mythic)
+local DISALLOW_CATEGORY_KEYWORDS = {
+	"common",
+	"rare",
+	"epic",
+	"legendary",
+	"mythic",
+	"mythic lucky block",
+}
+
+-- Путь до баз игроков
+local PLOTS_FOLDER = Workspace:WaitForChild("Plots")
+
+-- =============================
+-- Утилиты
+-- =============================
+local function safeLower(str)
+	if typeof(str) ~= "string" then
+		return ""
+	end
+	return string.lower(str)
+end
+
+local function stringContainsAny(haystack, needles)
+	haystack = safeLower(haystack)
+	for _, needle in ipairs(needles) do
+		if string.find(haystack, needle, 1, true) then
+			return true
+		end
+	end
+	return false
+end
+
+local function getFullPath(inst)
+	local ok, result = pcall(function()
+		return inst:GetFullName()
+	end)
+	return ok and result or inst.Name
+end
+
+-- Соберем map lower->canonical
+local LOWER_TO_CANON = {}
+for _, name in ipairs(CANONICAL_BRAINROT_NAMES) do
+	LOWER_TO_CANON[string.lower(name)] = name
+end
+
+local function getCanonicalMatch(name)
+	local lname = safeLower(name)
+	for lowerCanonical, canonical in pairs(LOWER_TO_CANON) do
+		if string.find(lname, lowerCanonical, 1, true) then
+			return canonical
+		end
+	end
+	return nil
+end
+
+local function isAllowedByCategory(name)
+	local lname = safeLower(name)
+	-- Если содержит запрещенные маркеры и при этом НЕ содержит ни одного разрешенного, то отбрасываем
+	local hasDisallow = stringContainsAny(lname, DISALLOW_CATEGORY_KEYWORDS)
+	local hasAllow = stringContainsAny(lname, ALLOW_CATEGORY_KEYWORDS)
+	if hasDisallow and not hasAllow then
+		return false
+	end
+	return true
+end
+
+local function isBrainrotInstance(inst)
+	if not inst then return false end
+	local canonical = getCanonicalMatch(inst.Name)
+	if not canonical then return false end
+	if not isAllowedByCategory(inst.Name) then return false end
+	return true
+end
+
+local function resolveOwnerNameFromPlot(plot)
+	-- Если в структуре плота есть хранение владельца, попробуем достать
+	-- На практике часто встречаются значения типа StringValue/IntValue: Owner/OwnerId/UserId и т.п.
+	for _, descendant in ipairs(plot:GetDescendants()) do
+		if descendant:IsA("StringValue") and stringContainsAny(descendant.Name, {"owner", "username", "user"}) then
+			if descendant.Value and #descendant.Value > 0 then
+				return descendant.Value
+			end
+		end
+		if descendant:IsA("IntValue") and stringContainsAny(descendant.Name, {"owner", "userid", "user_id"}) then
+			local userId = descendant.Value
+			if typeof(userId) == "number" and userId > 0 then
+				local ok, nameOrErr = pcall(function()
+					return Players:GetNameFromUserIdAsync(userId)
+				end)
+				if ok and typeof(nameOrErr) == "string" then
+					return nameOrErr
+				end
+			end
+		end
+	end
+	return nil
+end
+
+-- =============================
+-- Сканирование и репортинг
+-- =============================
+local function collectBrainrotsInPlot(plot)
+	local results = {}
+	for _, d in ipairs(plot:GetDescendants()) do
+		if isBrainrotInstance(d) then
+			local canonical = getCanonicalMatch(d.Name) or d.Name
+			table.insert(results, {
+				name = canonical,
+				class = d.ClassName,
+				path = getFullPath(d),
+			})
+		end
+	end
+	return results
+end
+
+local function formatConsoleReport(plot, ownerName, entries)
+	local header = string.format("[BrainrotScanner] Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries)
+	print(header)
+	for i, e in ipairs(entries) do
+		local line = string.format("  #%d [%s] %s | %s", i, e.class, e.name, e.path)
+		print(line)
+	end
+end
+
+local function sendWebhook(payload)
+	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then
+		return
+	end
+
+	local json = HttpService:JSONEncode(payload)
+
+	-- Попытка через exploit HTTP (если есть)
+	local request = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(request) == "function" then
+		local ok, _ = pcall(function()
+			request({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = json,
+			})
+		end)
+		return
+	end
+
+	-- Обычный Roblox HttpService (должен быть включен Allow HTTP Requests в игре)
+	pcall(function()
+		HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
+	end)
+end
+
+local function postDiscordSimple(content)
+	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then return end
+	local truncated = content
+	if #truncated > 1900 then
+		truncated = string.sub(truncated, 1, 1900) .. "..."
+	end
+	sendWebhook({ content = "```\n" .. truncated .. "\n```" })
+end
+
+local function reportPlot(plot, entries)
+	local ownerName = resolveOwnerNameFromPlot(plot)
+	formatConsoleReport(plot, ownerName, entries)
+
+	if WEBHOOK_URL ~= nil and WEBHOOK_URL ~= "" then
+		-- Сформируем простой текстовый отчет
+		local lines = {}
+		table.insert(lines, string.format("Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries))
+		for i, e in ipairs(entries) do
+			table.insert(lines, string.format("#%d [%s] %s\n%s", i, e.class, e.name, e.path))
+		end
+		postDiscordSimple(table.concat(lines, "\n"))
+	end
+end
+
+local function scanAllPlotsOnce()
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		local entries = collectBrainrotsInPlot(plot)
+		if #entries > 0 then
+			reportPlot(plot, entries)
+		end
+	end
+end
+
+-- =============================
+-- Онлайновый мониторинг
+-- =============================
+local connections = {}
+
+local function onPlotDescendantAdded(plot, inst)
+	if isBrainrotInstance(inst) then
+		local canonical = getCanonicalMatch(inst.Name) or inst.Name
+		local entries = {}
+		table.insert(entries, {
+			name = canonical,
+			class = inst.ClassName,
+			path = getFullPath(inst),
+		})
+		reportPlot(plot, entries)
+	end
+end
+
+local function attachPlotWatch(plot)
+	if connections[plot] then return end
+	connections[plot] = plot.DescendantAdded:Connect(function(inst)
+		onPlotDescendantAdded(plot, inst)
+	end)
+end
+
+local function detachPlotWatch(plot)
+	if connections[plot] then
+		connections[plot]:Disconnect()
+		connections[plot] = nil
+	end
+end
+
+local function watchPlots()
+	-- уже существующие
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		attachPlotWatch(plot)
+	end
+	-- новые и удаленные
+	PLOTS_FOLDER.ChildAdded:Connect(function(child)
+		attachPlotWatch(child)
+	end)
+	PLOTS_FOLDER.ChildRemoved:Connect(function(child)
+		detachPlotWatch(child)
+	end)
+end
+
+-- =============================
+-- Старт
+-- =============================
+print("[BrainrotScanner] Стартую сканирование брейнротов в Workspace.Plots ...")
+scanAllPlotsOnce()
+watchPlots()
+print("[BrainrotScanner] Мониторинг активирован. Новые брейнроты будут логироваться автоматически.")

@@ -199,6 +199,40 @@ local function isAllowedByCategory(name)
 end
 
 -- =============================
+-- Отправка вебхука
+-- =============================
+local function sendWebhook(payload)
+	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then
+		return
+	end
+	local json = HttpService:JSONEncode(payload)
+	local request = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(request) == "function" then
+		pcall(function()
+			request({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = json,
+			})
+		end)
+		return
+	end
+	pcall(function()
+		HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
+	end)
+end
+
+local function postDiscordSimple(content)
+	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then return end
+	local truncated = content
+	if #truncated > 1900 then
+		truncated = string.sub(truncated, 1, 1900) .. "..."
+	end
+	sendWebhook({ content = "```\n" .. truncated .. "\n```" })
+end
+
+-- =============================
 -- Детекция брейнротов
 -- =============================
 local function isBrainrotInstance(inst)

@@ -234,7 +234,7 @@ local function resolveOwnerNameFromPlot(plot)
 end
 
 -- =============================
--- Сканирование и репортинг
+-- Сканирование и репортинг (батч)
 -- =============================
 local function collectBrainrotsInPlot(plot)
 	local results = {}
@@ -255,88 +255,62 @@ local function collectBrainrotsInPlot(plot)
 	return results
 end
 
-local function formatConsoleReport(plot, ownerName, entries)
-	local header = string.format("[BrainrotScanner] Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries)
-	print(header)
-	for i, e in ipairs(entries) do
-		local line = string.format("  #%d %s", i, e.name)
-		print(line)
-	end
-end
-
-local function sendWebhook(payload)
-	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then
-		return
-	end
-
-	local json = HttpService:JSONEncode(payload)
-
-	-- Попытка через exploit HTTP (если есть)
-	local request = (syn and syn.request) or (http and http.request) or (http_request) or (request)
-	if typeof(request) == "function" then
-		local ok, _ = pcall(function()
-			request({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = { ["Content-Type"] = "application/json" },
-				Body = json,
-			})
-		end)
-		return
-	end
-
-	-- Обычный Roblox HttpService (должен быть включен Allow HTTP Requests в игре)
-	pcall(function()
-		HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
-	end)
-end
-
-local function postDiscordSimple(content)
-	if WEBHOOK_URL == nil or WEBHOOK_URL == "" then return end
-	local truncated = content
-	if #truncated > 1900 then
-		truncated = string.sub(truncated, 1, 1900) .. "..."
-	end
-	sendWebhook({ content = "```\n" .. truncated .. "\n```" })
-end
-
-local function reportPlot(plot, entries)
+local function buildPlotSection(plot)
 	local ownerName = resolveOwnerNameFromPlot(plot)
-	formatConsoleReport(plot, ownerName, entries)
+	local entries = collectBrainrotsInPlot(plot)
+	if #entries == 0 then return nil end
+	local lines = {}
+	table.insert(lines, string.format("Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries))
+	for i, e in ipairs(entries) do
+		table.insert(lines, string.format("#%d %s", i, e.name))
+	end
+	return table.concat(lines, "\n")
+end
 
-	if WEBHOOK_URL ~= nil and WEBHOOK_URL ~= "" then
-		-- Сформируем простой текстовый отчет
-		local lines = {}
-		table.insert(lines, string.format("Плот: %s%s | найдено: %d", plot.Name, ownerName and (" (owner: " .. ownerName .. ")") or "", #entries))
-		for i, e in ipairs(entries) do
-			table.insert(lines, string.format("#%d %s", i, e.name))
+local function postCombinedAllPlots()
+	local sections = {}
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		local section = buildPlotSection(plot)
+		if section then
+			table.insert(sections, section)
+			-- Одновременно печатаем в консоль
+			print(section)
+			print("")
 		end
-		postDiscordSimple(table.concat(lines, "\n"))
+	end
+	if #sections > 0 then
+		local body = table.concat(sections, "\n\n")
+		if WEBHOOK_URL ~= nil and WEBHOOK_URL ~= "" then
+			local truncated = body
+			if #truncated > 1900 then
+				truncated = string.sub(truncated, 1, 1900) .. "..."
+			end
+			sendWebhook({ content = "```\n" .. truncated .. "\n```" })
+		end
 	end
 end
 
 local function scanAllPlotsOnce()
-	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
-		local entries = collectBrainrotsInPlot(plot)
-		if #entries > 0 then
-			reportPlot(plot, entries)
-		end
-	end
+	postCombinedAllPlots()
 end
 
 -- =============================
--- Онлайновый мониторинг
+-- Онлайновый мониторинг (дебаунс)
 -- =============================
 local connections = {}
+local batchScheduled = false
+local function scheduleBatch()
+	if batchScheduled then return end
+	batchScheduled = true
+	task.delay(0.5, function()
+		batchScheduled = false
+		postCombinedAllPlots()
+	end)
+end
 
 local function onPlotDescendantAdded(plot, inst)
 	if isBrainrotInstance(inst) then
-		-- Пересканируем весь плот и отправим уникальный список,
-		-- чтобы избежать дублей при добавлении нескольких потомков
-		local entries = collectBrainrotsInPlot(plot)
-		if #entries > 0 then
-			reportPlot(plot, entries)
-		end
+		scheduleBatch()
 	end
 end
 
@@ -362,9 +336,11 @@ local function watchPlots()
 	-- новые и удаленные
 	PLOTS_FOLDER.ChildAdded:Connect(function(child)
 		attachPlotWatch(child)
+		scheduleBatch()
 	end)
 	PLOTS_FOLDER.ChildRemoved:Connect(function(child)
 		detachPlotWatch(child)
+		scheduleBatch()
 	end)
 end
 
@@ -374,4 +350,4 @@ end
 print("[BrainrotScanner] Стартую сканирование брейнротов в Workspace.Plots ...")
 scanAllPlotsOnce()
 watchPlots()
-print("[BrainrotScanner] Мониторинг активирован. Новые брейнроты будут логироваться автоматически.")
+print("[BrainrotScanner] Мониторинг активирован. Объединенный отчет будет отправляться в один вебхук.")

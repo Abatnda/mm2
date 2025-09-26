@@ -238,14 +238,18 @@ end
 -- =============================
 local function collectBrainrotsInPlot(plot)
 	local results = {}
+	local seenCanonical = {}
 	for _, d in ipairs(plot:GetDescendants()) do
 		if isBrainrotInstance(d) then
 			local canonical = getCanonicalMatch(d.Name) or d.Name
-			table.insert(results, {
-				name = canonical,
-				class = d.ClassName,
-				path = getFullPath(d),
-			})
+			if not seenCanonical[canonical] then
+				seenCanonical[canonical] = true
+				table.insert(results, {
+					name = canonical,
+					class = d.ClassName,
+					path = getFullPath(d),
+				})
+			end
 		end
 	end
 	return results
@@ -327,14 +331,12 @@ local connections = {}
 
 local function onPlotDescendantAdded(plot, inst)
 	if isBrainrotInstance(inst) then
-		local canonical = getCanonicalMatch(inst.Name) or inst.Name
-		local entries = {}
-		table.insert(entries, {
-			name = canonical,
-			class = inst.ClassName,
-			path = getFullPath(inst),
-		})
-		reportPlot(plot, entries)
+		-- Пересканируем весь плот и отправим уникальный список,
+		-- чтобы избежать дублей при добавлении нескольких потомков
+		local entries = collectBrainrotsInPlot(plot)
+		if #entries > 0 then
+			reportPlot(plot, entries)
+		end
 	end
 end
 

@@ -1,57 +1,33 @@
-local HttpService = game:GetService("HttpService")
-local Workspace = game:GetService("Workspace")
+-- Get the HttpService service
+local httpService = game:GetService("HttpService")
 
--- Твой вебхук
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
+-- Replace with your actual Discord webhook URL
+local webhookUrl = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" 
 
--- функция отправки в Discord
-local function sendToDiscord(msg)
-    local payload = { content = msg }
-    local json = HttpService:JSONEncode(payload)
-    
-    local ok, err = pcall(function()
-        HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
+-- Function to send a message to Discord
+local function sendMessageToDiscord(messageText)
+    -- Create the data table for Discord
+    local contentData = {
+        ["content"] = messageText 
+    }
+
+    -- Encode the data table into a JSON string
+    local jsonData = httpService:JSONEncode(contentData)
+
+    -- Send the data to the webhook URL using a POST request
+    local success, result = pcall(function()
+        httpService:PostAsync(webhookUrl, jsonData)
     end)
-    
-    if ok then
-        print("✅ Сообщение отправлено!")
+
+    -- Check if the request was successful (optional)
+    if success then
+        print("Message sent successfully!")
     else
-        warn("❌ Ошибка при отправке: " .. tostring(err))
+        warn("Failed to send message: " .. result)
     end
 end
 
--- собрать все Brainrots
-local function collectBrainrots()
-    local results = {}
-    local plots = Workspace:FindFirstChild("Plots")
-    if not plots then return results end
-
-    for _, plot in ipairs(plots:GetChildren()) do
-        local brainrots = plot:FindFirstChild("Brainrots")
-        if brainrots then
-            for i = 1, 17 do
-                local br = brainrots:FindFirstChild(tostring(i))
-                if br and br:FindFirstChild("Brainrot") then
-                    local ui = br.Brainrot:FindFirstChild("PlatformUI")
-                    if ui and ui:FindFirstChild("Title") then
-                        local title = ui.Title
-                        if title.Text and title.Text ~= "" then
-                            table.insert(results, ("Plot %s | Brainrot %d: %s"):format(plot.Name, i, title.Text))
-                        end
-                    end
-                end
-            end
-        end
-    end
-
-    return results
-end
-
--- основной код
-local brainrots = collectBrainrots()
-if #brainrots > 0 then
-    local message = table.concat(brainrots, "\n")
-    sendToDiscord(message)
-else
-    print("Нет Brainrots с текстом для отправки.")
-end
+-- Example: Send a message when a player joins the game
+game.Players.PlayerAdded:Connect(function(plr)
+    sendMessageToDiscord(plr.Name .. " has joined the game!")
+end)

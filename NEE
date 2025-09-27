@@ -1,105 +1,57 @@
--- ServerScriptService/BrainrotDiscordSender.lua
-local RunService = game:GetService("RunService")
-if RunService:IsClient() then
-    error("Этот скрипт должен выполняться на СЕРВЕРЕ (ServerScriptService). Не запускай его в LocalScript.")
-end
-
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 
--- Вставь сюда свой вебхук (но учти: если ты уже в чат вставлял вебхук, его следует перегенерировать в Discord)
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" 
+-- Твой вебхук
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
 
--- Собирает строки для одного plot
-local function collectFromPlot(plot)
-    local out = {}
-    if not plot then return out end
-    local brainrots = plot:FindFirstChild("Brainrots")
-    if not brainrots then return out end
+-- функция отправки в Discord
+local function sendToDiscord(msg)
+    local payload = { content = msg }
+    local json = HttpService:JSONEncode(payload)
+    
+    local ok, err = pcall(function()
+        HttpService:PostAsync(WEBHOOK_URL, json, Enum.HttpContentType.ApplicationJson)
+    end)
+    
+    if ok then
+        print("✅ Сообщение отправлено!")
+    else
+        warn("❌ Ошибка при отправке: " .. tostring(err))
+    end
+end
 
-    for i = 1, 17 do
-        local br = brainrots:FindFirstChild(tostring(i))
-        if br and br:FindFirstChild("Brainrot") then
-            local ui = br.Brainrot:FindFirstChild("PlatformUI")
-            if ui and ui:FindFirstChild("Title") then
-                local title = ui.Title
-                if title and typeof(title.Text) == "string" and title.Text ~= "" then
-                    table.insert(out, ("Plot %s | Brainrot %d: %s"):format(plot.Name, i, title.Text))
+-- собрать все Brainrots
+local function collectBrainrots()
+    local results = {}
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return results end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        local brainrots = plot:FindFirstChild("Brainrots")
+        if brainrots then
+            for i = 1, 17 do
+                local br = brainrots:FindFirstChild(tostring(i))
+                if br and br:FindFirstChild("Brainrot") then
+                    local ui = br.Brainrot:FindFirstChild("PlatformUI")
+                    if ui and ui:FindFirstChild("Title") then
+                        local title = ui.Title
+                        if title.Text and title.Text ~= "" then
+                            table.insert(results, ("Plot %s | Brainrot %d: %s"):format(plot.Name, i, title.Text))
+                        end
+                    end
                 end
             end
         end
     end
 
-    return out
+    return results
 end
 
--- Собирает по всем Plot'ам
-local function collectAll()
-    local res = {}
-    local plots = Workspace:FindFirstChild("Plots")
-    if not plots then return res end
-
-    for _, plot in ipairs(plots:GetChildren()) do
-        local lines = collectFromPlot(plot)
-        for _, l in ipairs(lines) do table.insert(res, l) end
-    end
-
-    return res
-end
-
--- Разбиваем строки на сообщения <= maxChars (Discord limit ~2000)
-local function chunkLines(lines, maxChars)
-    maxChars = maxChars or 1900
-    local msgs = {}
-    local cur = ""
-
-    for _, line in ipairs(lines) do
-        if #cur + #line + 1 > maxChars then
-            table.insert(msgs, cur)
-            cur = line
-        else
-            if cur == "" then cur = line else cur = cur .. "\n" .. line end
-        end
-    end
-
-    if cur ~= "" then table.insert(msgs, cur) end
-    return msgs
-end
-
--- Отправка чанков на вебхук, с обработкой ошибок
-local function sendChunksToWebhook(chunks)
-    if not HttpService.HttpEnabled then
-        return false, "HttpService.HttpEnabled = false. Включи Allow HTTP Requests в Game Settings."
-    end
-    if not WEBHOOK_URL or WEBHOOK_URL == "" then
-        return false, "WEBHOOK_URL пуст. Вставь вебхук в переменную."
-    end
-
-    for i, chunk in ipairs(chunks) do
-        local payload = { content = chunk }
-        local ok, err = pcall(function()
-            HttpService:PostAsync(WEBHOOK_URL, HttpService:JSONEncode(payload), Enum.HttpContentType.ApplicationJson)
-        end)
-        if not ok then
-            return false, ("Ошибка PostAsync на чанке %d: %s"):format(i, tostring(err))
-        end
-    end
-
-    return true, "Отправлено успешно"
-end
-
--- === MAIN ===
-local results = collectAll()
-if #results == 0 then
-    print("Нет Brainrot'ов с текстом для отправки.")
-    return
-end
-
-local chunks = chunkLines(results, 1900)
-print(("Найдено %d строк, разобито на %d сообщений. Попытка отправки..."):format(#results, #chunks))
-local ok, status = sendChunksToWebhook(chunks)
-if ok then
-    print(status)
+-- основной код
+local brainrots = collectBrainrots()
+if #brainrots > 0 then
+    local message = table.concat(brainrots, "\n")
+    sendToDiscord(message)
 else
-    warn(status)
+    print("Нет Brainrots с текстом для отправки.")
 end

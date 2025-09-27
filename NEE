@@ -1,1 +1,45 @@
-g
+local HttpService = game:GetService("HttpService")
+local plots = game:GetService("Workspace").Plots
+
+-- Твой Discord webhook
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
+
+-- Функция отправки
+local function sendToDiscord(msg)
+    local data = {
+        ["content"] = msg
+    }
+
+    local jsonData = HttpService:JSONEncode(data)
+
+    HttpService:PostAsync(WEBHOOK_URL, jsonData, Enum.HttpContentType.ApplicationJson)
+end
+
+-- Проверка Plot "1"
+local plot = plots:FindFirstChild("1")
+
+if plot and plot:FindFirstChild("Brainrots") then
+    local results = {}
+
+    for i = 1, 17 do
+        local brainrot = plot.Brainrots:FindFirstChild(tostring(i))
+        if brainrot and brainrot:FindFirstChild("Brainrot") then
+            local ui = brainrot.Brainrot:FindFirstChild("PlatformUI")
+            if ui and ui:FindFirstChild("Title") then
+                local title = ui.Title
+                if title.Text and title.Text ~= "" then
+                    table.insert(results, "Brainrot " .. i .. ": " .. title.Text)
+                end
+            end
+        end
+    end
+
+    if #results > 0 then
+        local finalMessage = table.concat(results, "\n")
+        sendToDiscord(finalMessage)
+    else
+        warn("Не найдено ни одного Brainrot с текстом")
+    end
+else
+    warn("Plot или Brainrots не найдены!")
+end

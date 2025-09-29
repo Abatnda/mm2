@@ -251,9 +251,9 @@ local function createActivationGUI()
 
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 450, 0, 300) -- квадратное и больше для кнопки
+	mainFrame.Size = UDim2.new(0, 450, 0, 300)
 	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0) -- черное
+	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = gui
 
@@ -273,17 +273,20 @@ local function createActivationGUI()
 	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	textBox.BorderSizePixel = 0
 	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
-	textBox.PlaceholderColor3 = Color3.fromRGB(120, 120, 120)
+	textBox.ClearTextOnFocus = false -- фикс для Placeholder
+	textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+	textBox.Text = "" -- чтобы placeholder точно показывался
 	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	textBox.TextScaled = true
 	textBox.Font = Enum.Font.Gotham
 	textBox.Parent = mainFrame
 
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 70) -- большая кнопка
+	button.Size = UDim2.new(1, -20, 0, 70)
 	button.Position = UDim2.new(0, 10, 0, 140)
-	button.BackgroundColor3 = Color3.fromRGB(0, 100, 255) -- ярко-синяя
-	button.BorderSizePixel = 0
+	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+	button.BorderSizePixel = 2 -- белая рамка для наглядности
+	button.BorderColor3 = Color3.fromRGB(255, 255, 255)
 	button.Text = "ACTIVATE"
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextScaled = true
@@ -294,7 +297,7 @@ local function createActivationGUI()
 		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 100, 255)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
 	end)
 
 	local status = Instance.new("TextLabel")

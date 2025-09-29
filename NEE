@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 -- =============================
 -- Конфиг
 -- =============================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/..." -- вставь сюда Discord/Webhook URL
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- вставь сюда Discord/Webhook URL
 
 -- =============================
 -- Глобальные переменные

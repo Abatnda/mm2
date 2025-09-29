@@ -113,7 +113,7 @@ end
 -- Brainrots (пример)
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
-	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
+	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot","Job Job Job Sahur",
 }
 local LOWER_TO_CANON = {}
 for _, name in ipairs(CANONICAL_BRAINROT_NAMES) do

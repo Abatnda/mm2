@@ -35,7 +35,7 @@ end
 -- Список брейнротов
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
-	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
+	"Los Tralaleritos","Las Tralaleritas",
 	-- добавьте остальные сюда!
 }
 

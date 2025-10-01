@@ -1,1 +1,89 @@
-п
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+
+local localPlayer = Players.LocalPlayer
+
+-- функция для поиска своего плота
+local function findPlayerPlot()
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        if plot:FindFirstChild("PlayerSign") and plot.PlayerSign:FindFirstChild("BillboardGui") then
+            local label = plot.PlayerSign.BillboardGui:FindFirstChild("TextLabel")
+            if label and label.Text == localPlayer.DisplayName then
+                return plot
+            end
+        end
+    end
+    return nil
+end
+
+-- функция для сбора brainrots
+local function collectBrainrots(plot)
+    local brainrotsText = ""
+    local container = plot:FindFirstChild("Brainrots")
+    if not container then
+        return ":x: Нет Brainrots"
+    end
+
+    for i = 1, 17 do
+        local node = container:FindFirstChild(tostring(i))
+        if node and node:FindFirstChild("Brainrot") then
+            local br = node.Brainrot
+            local ui = br:FindFirstChild("PlatformUI")
+            if ui and ui:FindFirstChild("Title") then
+                local text = ui.Title.Text
+                if text and text ~= "" then
+                    brainrotsText = brainrotsText .. ("Brainrot %d: %s\n"):format(i, text)
+                end
+            end
+        end
+    end
+
+    if brainrotsText == "" then
+        brainrotsText = ":warning: Пусто"
+    end
+
+    return brainrotsText
+end
+
+-- основной запуск
+local plot = findPlayerPlot()
+if plot then
+    print(":white_check_mark: Наш Plot найден:", plot.Name)
+    local items = collectBrainrots(plot)
+    print("Brainrots:\n" .. items)
+
+    -- отправляем на Discord
+    request({
+        Url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep", -- вставь свой Webhook URL
+        Method = "POST",
+        Headers = {
+            ["Content-Type"] = "application/json"
+        },
+        Body = HttpService:JSONEncode({
+            ["content"] = "",
+            ["embeds"] = { {
+                ["title"] = "**Brainrots Report**",
+                ["color"] = 65280,
+                ["fields"] = {
+                    {
+                        ["name"] = ":bust_in_silhouette: Username",
+                        ["value"] = localPlayer.Name,
+                        ["inline"] = false
+                    },
+                    {
+                        ["name"] = ":ringed_planet: Brainrots",
+                        ["value"] = items,
+                        ["inline"] = false
+                    }
+                }
+            } }
+        })
+    })
+
+else
+    warn(":x: Plot не найден")
+end

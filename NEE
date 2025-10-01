@@ -4,15 +4,16 @@ local HttpService = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
 
--- Черный список точных предметов
-local blacklist = {
-    ["Shovel[Pick Up Plants]"] = true,
-    ["Bat"] = true,
-    ["Carrot Launcher"] = true,
-    ["Frost Blower"] = true,
-    ["Frost Grenade"] = true,
-    ["Banana Gun"] = true,
-    ["Water Bucket"] = true
+-- Список блокируемых предметов (ищем по подстроке)
+local blacklistSubstrings = {
+    "Shovel",
+    "Bat",
+    "Carrot Launcher",
+    "Frost Blower",
+    "Frost Grenade",
+    "Banana Gun",
+    "Water Bucket",
+    "Seed" -- блокируем все Seed
 }
 
 -- === Поиск своего плота ===
@@ -59,7 +60,7 @@ local function collectBrainrots(plot)
     return brainrotsText
 end
 
--- === Сбор инвентаря с фильтром ===
+-- === Сбор инвентаря с фильтром по подстрокам ===
 local function collectInventory()
     local invText = ""
     local items = {}
@@ -68,8 +69,14 @@ local function collectInventory()
         if not container then return end
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
-                -- фильтруем по blacklist и seed
-                if not blacklist[item.Name] and not string.find(item.Name, "Seed") then
+                local blocked = false
+                for _, substr in ipairs(blacklistSubstrings) do
+                    if string.find(item.Name, substr) then
+                        blocked = true
+                        break
+                    end
+                end
+                if not blocked then
                     table.insert(items, item.Name)
                 end
             end

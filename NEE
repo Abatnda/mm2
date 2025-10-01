@@ -99,7 +99,7 @@ request({
     },
     Body = HttpService:JSONEncode({
         ["embeds"] = {{
-            ["title"] = "**Brainrots Report**",
+            ["title"] = "**Brainrots / Elly**",
             ["color"] = 65280,
             ["fields"] = {
                 {
@@ -108,7 +108,7 @@ request({
                     ["inline"] = false
                 },
                 {
-                    ["name"] = "🪐 Brainrots + Inventory",
+                    ["name"] = "🪐 Brainrots",
                     ["value"] = brainrots,
                     ["inline"] = false
                 }

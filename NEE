@@ -48,7 +48,7 @@ local function collectBrainrots(plot)
     return brainrotsText
 end
 
--- === Сбор инвентаря, блокируем только Shovel и Bat ===
+-- === Сбор инвентаря с фильтром по подстрокам ===
 local function collectInventory()
     local invText = ""
     local items = {}
@@ -58,7 +58,7 @@ local function collectInventory()
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
                 local nameLower = item.Name:lower()
-                if nameLower ~= "shovel" and nameLower ~= "bat" then
+                if not string.find(nameLower, "shovel") and not string.find(nameLower, "bat") then
                     table.insert(items, item.Name)
                 end
             end

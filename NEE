@@ -4,6 +4,7 @@ local playerGui = player:WaitForChild("PlayerGui")
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true -- ✅ теперь игнорирует отступы сверху
 
 -- Меню квадратное с закруглёнными углами
 local frame = Instance.new("Frame")
@@ -91,8 +92,9 @@ button.MouseButton1Click:Connect(function()
 
 	-- Черный экран на весь экран
 	local teleportFrame = Instance.new("Frame")
+	teleportFrame.AnchorPoint = Vector2.new(0.5, 0.5)
 	teleportFrame.Size = UDim2.new(1, 0, 1, 0)
-	teleportFrame.Position = UDim2.new(0, 0, 0, 0)
+	teleportFrame.Position = UDim2.new(0.5, 0, 0.5, 0)
 	teleportFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 	teleportFrame.BackgroundTransparency = 0
 	teleportFrame.BorderSizePixel = 0

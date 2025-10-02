@@ -14,7 +14,7 @@ frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 25) -- заметное закругление
+frameCorner.CornerRadius = UDim.new(0, 12) -- закругление у меню
 frameCorner.Parent = frame
 
 -- Текст
@@ -36,6 +36,12 @@ bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 bar.BorderSizePixel = 0
 bar.Parent = frame
 
+textLabel:GetPropertyChangedSignal("Text"):Connect(function()
+	local width = textLabel.TextBounds.X
+	bar.Size = UDim2.new(0, width, 0, 4)
+	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
+end)
+
 -- Кнопка "Activate"
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0, 160, 0, 40)
@@ -48,7 +54,7 @@ toggle.TextScaled = true
 toggle.Parent = frame
 
 local toggleCorner = Instance.new("UICorner")
-toggleCorner.CornerRadius = UDim.new(0, 20) -- закругление кнопки
+toggleCorner.CornerRadius = UDim.new(0, 10) -- закругление у кнопки
 toggleCorner.Parent = toggle
 
 local active = false
@@ -75,5 +81,44 @@ button.TextScaled = true
 button.Parent = frame
 
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 20) -- закругление кнопки
+buttonCorner.CornerRadius = UDim.new(0, 10) -- закругление у кнопки
 buttonCorner.Parent = button
+
+button.MouseButton1Click:Connect(function()
+	print("Телепорт на базу!")
+end)
+
+-- Перетаскивание меню
+local UserInputService = game:GetService("UserInputService")
+local dragging = false
+local dragStart
+local startPos
+
+frame.InputBegan:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseButton1 then
+		dragging = true
+		dragStart = input.Position
+		startPos = frame.Position
+		input.Changed:Connect(function()
+			if input.UserInputState == Enum.UserInputState.End then
+				dragging = false
+			end
+		end)
+	end
+end)
+
+frame.InputChanged:Connect(function(input)
+	if input.UserInputType == Enum.UserInputType.MouseMovement then
+		dragInput = input
+	end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
+	end
+end)

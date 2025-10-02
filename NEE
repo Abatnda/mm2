@@ -7,8 +7,8 @@ screenGui.ResetOnSpawn = false
 
 -- Меню квадратное
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 220)
-frame.Position = UDim2.new(0.5, -100, 0.5, -110)
+frame.Size = UDim2.new(0, 200, 0, 240) -- увеличил по высоте под 2 кнопки
+frame.Position = UDim2.new(0.5, -100, 0.5, -120)
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -17,11 +17,40 @@ local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 15)
 uicorner.Parent = frame
 
--- Переключатель сверху "Activate"
+-- Текст
+local textLabel = Instance.new("TextLabel")
+textLabel.Size = UDim2.new(1, -20, 0, 25)
+textLabel.Position = UDim2.new(0, 10, 0, 20)
+textLabel.BackgroundTransparency = 1
+textLabel.Text = "Plague Client"
+textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+textLabel.Font = Enum.Font.SourceSansBold
+textLabel.TextScaled = true
+textLabel.Parent = frame
+
+-- Полоска под текстом
+local bar = Instance.new("Frame")
+bar.Size = UDim2.new(0, 0, 0, 4)
+bar.Position = UDim2.new(0.5, 0, 0, 50)
+bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
+bar.BorderSizePixel = 0
+bar.Parent = frame
+
+textLabel:GetPropertyChangedSignal("Text"):Connect(function()
+	local width = textLabel.TextBounds.X
+	bar.Size = UDim2.new(0, width, 0, 4)
+	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
+end)
+
+local initialWidth = textLabel.TextBounds.X
+bar.Size = UDim2.new(0, initialWidth, 0, 4)
+bar.Position = UDim2.new(0.5, -initialWidth/2, 0, 50)
+
+-- Переключатель "Activate" над кнопкой Tp base
 local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(0, 100, 0, 30)
-toggle.Position = UDim2.new(0.5, -50, 0, 5)
-toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- серый, пока выключен
+toggle.Size = UDim2.new(0, 120, 0, 30)
+toggle.Position = UDim2.new(0.5, -60, 1, -90) -- чуть выше синей кнопки
+toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 toggle.Text = "Activate"
 toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
 toggle.Font = Enum.Font.SourceSansBold
@@ -36,47 +65,18 @@ local active = false
 toggle.MouseButton1Click:Connect(function()
 	active = not active
 	if active then
-		toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- зелёный
+		toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0)
 		print("Activated")
 	else
-		toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- серый
+		toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 		print("Deactivated")
 	end
 end)
 
--- Текст
-local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(1, -20, 0, 25)
-textLabel.Position = UDim2.new(0, 10, 0, 50)
-textLabel.BackgroundTransparency = 1
-textLabel.Text = "Plague Client"
-textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-textLabel.Font = Enum.Font.SourceSansBold
-textLabel.TextScaled = true
-textLabel.Parent = frame
-
--- Полоска под текстом (динамическая)
-local bar = Instance.new("Frame")
-bar.Size = UDim2.new(0, 0, 0, 4)
-bar.Position = UDim2.new(0.5, 0, 0, 80)
-bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
-bar.BorderSizePixel = 0
-bar.Parent = frame
-
-textLabel:GetPropertyChangedSignal("Text"):Connect(function()
-	local width = textLabel.TextBounds.X
-	bar.Size = UDim2.new(0, width, 0, 4)
-	bar.Position = UDim2.new(0.5, -width/2, 0, 80)
-end)
-
-local initialWidth = textLabel.TextBounds.X
-bar.Size = UDim2.new(0, initialWidth, 0, 4)
-bar.Position = UDim2.new(0.5, -initialWidth/2, 0, 80)
-
 -- Большая кнопка "Tp base" снизу
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 140, 0, 40) -- больше по ширине и высоте
-button.Position = UDim2.new(0.5, -70, 1, -50)
+button.Size = UDim2.new(0, 140, 0, 40)
+button.Position = UDim2.new(0.5, -70, 1, -45)
 button.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
 button.Text = "Tp base"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)

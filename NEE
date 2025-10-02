@@ -35,44 +35,8 @@ end
 -- Список брейнротов
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
-	"Los Tralaleritos",
-    "Las Tralaleritas","La Cucaracha","Pot Hotspot",
-	"Garama and Madundung",
-    "Tictac Sahur",
-    "Spaghetti Tualetti", 
-    "Dragon Cannelloni",
-	"Ketupat Kepat", 
-    "Ketchuru and Musturu", 
-    "Esok Sekolah", 
-    "Money Money Puggy",
-	"Nuclearo Dinossauro", 
-    "La Grande Combinasion", 
-    "Chicleteira Bicicleteira", 
-    "Los Chicleteiras",
-	"To to to Sahur", 
-    "Graipuss Medussi", 
-    "Strawberry Elephant", 
-    "67",
-	"La Extinct Grande", 
-    "Mariachi Corazoni",
-    "Tacorita Bicicleta", 
-    "Los Nooo My Hotspotsitos",
-	"La Karkerkar Combinasion", 
-    "Los Bros", 
-    "Los Primos", 
-    "Tralaledon",
-	"Los Tacoritas", 
-    "La Sahur Combinasion", 
-    "Fragola La La La", 
-    "Los Hotspotsitos",
-	"La Supreme Combinasion", 
-    "Los Combinasionas", 
-    "Los Tungtungtungcitos", 
-    "Noo My Examen",
-	"Yess my Examen", 
-    "Secret Lucky Block", 
-    "Admin Lucky Block", 
-    "Quesadilla Crocodila",
+	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
+	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}
@@ -284,83 +248,59 @@ end
 -- =============================
 -- Fullscreen Loading screen (поверх всего)
 -- =============================
--- =============================
--- Fullscreen Loading screen (поверх всего)
--- =============================
 local function showLoadingScreen(duration)
 	local player = Players.LocalPlayer
-	local StarterGui = game:GetService("StarterGui")
-
-	-- Вырубаем все стандартные UI (хотбар, чат, leaderboard и т.д.)
-	pcall(function()
-		StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
-	end)
-
-	-- ScreenGui поверх всего
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "LoadingScreen"
-	gui.IgnoreGuiInset = true
 	gui.ResetOnSpawn = false
-	gui.DisplayOrder = 999999
+	gui.IgnoreGuiInset = true
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	-- Чёрный фон
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Size = UDim2.new(1, 0, 1, 0)
 	mainFrame.Position = UDim2.new(0, 0, 0, 0)
 	mainFrame.BackgroundColor3 = Color3.new(0, 0, 0)
 	mainFrame.BorderSizePixel = 0
-	mainFrame.ZIndex = 999999
-	mainFrame.Active = true
-	mainFrame.Selectable = true
+	mainFrame.ZIndex = 1000
 	mainFrame.Parent = gui
 
-	-- Текст
 	local loadingText = Instance.new("TextLabel")
-	loadingText.Size = UDim2.new(1, 0, 0, 60)
-	loadingText.Position = UDim2.new(0, 0, 0.4, -30)
+	loadingText.Size = UDim2.new(1, 0, 0, 50)
+	loadingText.Position = UDim2.new(0, 0, 0.4, -25)
 	loadingText.BackgroundTransparency = 1
-	loadingText.Text = "Script activated, please wait..."
+	loadingText.Text = "Loading script, please wait."
 	loadingText.TextColor3 = Color3.new(1,1,1)
 	loadingText.TextScaled = true
 	loadingText.Font = Enum.Font.GothamBold
-	loadingText.ZIndex = 1000000
+	loadingText.ZIndex = 1001
 	loadingText.Parent = mainFrame
 
-	-- Полоска фон
 	local progressBarFrame = Instance.new("Frame")
-	progressBarFrame.Size = UDim2.new(0.6, 0, 0, 25)
-	progressBarFrame.Position = UDim2.new(0.2, 0, 0.55, 0)
+	progressBarFrame.Size = UDim2.new(0.6, 0, 0, 20)
+	progressBarFrame.Position = UDim2.new(0.2, 0, 0.5, 0)
 	progressBarFrame.BackgroundColor3 = Color3.fromRGB(50,50,50)
 	progressBarFrame.BorderSizePixel = 0
-	progressBarFrame.ZIndex = 1000000
+	progressBarFrame.ZIndex = 1001
 	progressBarFrame.Parent = mainFrame
 
-	-- Полоска заполнения
 	local progressBar = Instance.new("Frame")
 	progressBar.Size = UDim2.new(0, 0, 1, 0)
-	progressBar.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
+	progressBar.Position = UDim2.new(0,0,0,0)
+	progressBar.BackgroundColor3 = Color3.fromRGB(0, 120, 255)
 	progressBar.BorderSizePixel = 0
-	progressBar.ZIndex = 1000001
+	progressBar.ZIndex = 1002
 	progressBar.Parent = progressBarFrame
 
-	-- Анимация полоски
 	local tweenInfo = TweenInfo.new(duration, Enum.EasingStyle.Linear)
-	local goal = {Size = UDim2.new(1, 0, 1, 0)}
+	local goal = {Size = UDim2.new(1,0,1,0)}
 	local tween = TweenService:Create(progressBar, tweenInfo, goal)
 	tween:Play()
 
-	-- Автоуборка
 	task.delay(duration, function()
 		gui:Destroy()
-		-- Возвращаем стандартный UI
-		pcall(function()
-			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
-		end)
 	end)
 end
-
 
 -- =============================
 -- GUI

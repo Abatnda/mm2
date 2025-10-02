@@ -1,78 +1,87 @@
--- LocalScript (поместить в StarterGui)
+-- LocalScript: поместить в StarterGui
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
+local StarterGui = game:GetService("StarterGui")
+
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Параметры
 local DURATION = 300 -- 5 минут = 300 секунд
 
--- Создаём ScreenGui
+-- Попытка скрыть hotbar (Backpack) и чат
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+end)
+
+-- Создаём ScreenGui поверх всего
 local screenGui = Instance.new("ScreenGui")
 screenGui.Name = "ModalOverlay_ScriptActivated"
 screenGui.ResetOnSpawn = false
--- Игнорировать отступы панели Roblox (optional)
 screenGui.IgnoreGuiInset = true
+screenGui.DisplayOrder = 9999
+screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- Чёрный фон, который перекрывает всё
+-- Полностью чёрный фон (перехватывает ввод)
 local bg = Instance.new("Frame")
 bg.Name = "Background"
-bg.Size = UDim2.new(1, 0, 1, 0)
+bg.AnchorPoint = Vector2.new(0, 0)
 bg.Position = UDim2.new(0, 0, 0, 0)
-bg.BackgroundColor3 = Color3.fromRGB(0,0,0)
+bg.Size = UDim2.new(1, 0, 1, 0)
+bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 bg.BackgroundTransparency = 0
 bg.BorderSizePixel = 0
-bg.ZIndex = 10
--- Делаем интерактивным, чтобы попытки кликов/нажатий шли сюда, а не "в игровую сцену"
+bg.ZIndex = 1000
 bg.Active = true
+bg.Selectable = true
 bg.Parent = screenGui
 
--- Центрированное меню-контейнер
+-- "Съедаем" ввод, чтобы ничего не проходило
+bg.InputBegan:Connect(function(input, gameProcessed)
+    if not gameProcessed then
+        -- ничего — ввод перехвачен
+    end
+end)
+bg.InputChanged:Connect(function() end)
+
+-- Панель в центре
 local panel = Instance.new("Frame")
 panel.Name = "Panel"
 panel.Size = UDim2.new(0, 520, 0, 140)
 panel.AnchorPoint = Vector2.new(0.5, 0.5)
 panel.Position = UDim2.new(0.5, 0.5, 0.5, 0)
-panel.BackgroundTransparency = 0.08
-panel.BackgroundColor3 = Color3.fromRGB(10,10,10)
+panel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
 panel.BorderSizePixel = 0
-panel.ZIndex = 11
+panel.ZIndex = 1001
 panel.Parent = bg
-
--- Скругление панели (ui corner)
-local corner = Instance.new("UICorner")
+local corner = Instance.new("UICorner", panel)
 corner.CornerRadius = UDim.new(0, 12)
-corner.Parent = panel
 
--- Надпись
-local label = Instance.new("TextLabel")
-label.Name = "Title"
-label.Size = UDim2.new(1, -32, 0, 48)
-label.Position = UDim2.new(0, 16, 0, 16)
-label.BackgroundTransparency = 1
-label.Text = "Script activated, please wait."
-label.TextColor3 = Color3.fromRGB(255,255,255)
-label.TextScaled = false
-label.Font = Enum.Font.GothamBold
-label.TextSize = 22
-label.TextXAlignment = Enum.TextXAlignment.Left
-label.ZIndex = 12
-label.Parent = panel
+local title = Instance.new("TextLabel")
+title.Name = "Title"
+title.Size = UDim2.new(1, -32, 0, 48)
+title.Position = UDim2.new(0, 16, 0, 16)
+title.BackgroundTransparency = 1
+title.Text = "Script activated, please wait."
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.GothamBold
+title.TextSize = 22
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.ZIndex = 1002
+title.Parent = panel
 
--- Описание подзаголовок (опционально)
 local subtitle = Instance.new("TextLabel")
 subtitle.Name = "Subtitle"
 subtitle.Size = UDim2.new(1, -32, 0, 20)
 subtitle.Position = UDim2.new(0, 16, 0, 64)
 subtitle.BackgroundTransparency = 1
-subtitle.Text = "Please wait — initializing. This will take up to 5 minutes."
-subtitle.TextColor3 = Color3.fromRGB(200,200,200)
-subtitle.TextScaled = false
+subtitle.Text = "Please wait — initializing."
+subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
 subtitle.Font = Enum.Font.Gotham
 subtitle.TextSize = 14
 subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.ZIndex = 12
+subtitle.ZIndex = 1002
 subtitle.Parent = panel
 
 -- Полоска (фон)
@@ -80,105 +89,70 @@ local barBg = Instance.new("Frame")
 barBg.Name = "BarBackground"
 barBg.Size = UDim2.new(1, -32, 0, 18)
 barBg.Position = UDim2.new(0, 16, 0, 94)
-barBg.BackgroundColor3 = Color3.fromRGB(30,30,30)
+barBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
 barBg.BorderSizePixel = 0
-barBg.ZIndex = 12
+barBg.ZIndex = 1002
 barBg.Parent = panel
-local barCorner = Instance.new("UICorner")
+local barCorner = Instance.new("UICorner", barBg)
 barCorner.CornerRadius = UDim.new(0, 6)
-barCorner.Parent = barBg
 
--- Полоска заполнения
+-- Заполнение полоски
 local barFill = Instance.new("Frame")
 barFill.Name = "BarFill"
-barFill.Size = UDim2.new(0, 0, 1, 0) -- ширина будет меняться
+barFill.Size = UDim2.new(0, 0, 1, 0)
 barFill.Position = UDim2.new(0, 0, 0, 0)
 barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 barFill.BorderSizePixel = 0
-barFill.ZIndex = 13
+barFill.ZIndex = 1003
 barFill.Parent = barBg
-local fillCorner = Instance.new("UICorner")
+local fillCorner = Instance.new("UICorner", barFill)
 fillCorner.CornerRadius = UDim.new(0, 6)
-fillCorner.Parent = barFill
 
--- Текст процентов/времени поверх полоски
 local barText = Instance.new("TextLabel")
 barText.Name = "BarText"
-barText.Size = barBg.Size
+barText.Size = UDim2.new(1, 0, 1, 0)
 barText.Position = UDim2.new(0, 0, 0, 0)
 barText.BackgroundTransparency = 1
-barText.Text = "0% — 05:00:00"
-barText.TextColor3 = Color3.fromRGB(255,255,255)
-barText.TextScaled = false
+barText.Text = "0% — 05:00"
+barText.TextColor3 = Color3.fromRGB(255, 255, 255)
 barText.Font = Enum.Font.GothamBold
 barText.TextSize = 14
-barText.ZIndex = 14
+barText.ZIndex = 1004
 barText.Parent = barBg
 
--- Делает фон и панель немаршрутизируемыми для кликов ниже (попытка "перехватить" ввод)
-bg.Modal = true -- для UI современных клиентов (если поддерживается)
-panel.Modal = true
+-- Таймер (плавное обновление через RenderStepped)
+local start = tick()
+local finished = false
+local conn
+conn = RunService.RenderStepped:Connect(function()
+    local now = tick()
+    local elapsed = now - start
+    local pct = math.clamp(elapsed / DURATION, 0, 1)
+    barFill.Size = UDim2.new(pct, 0, 1, 0)
+    local remaining = math.max(0, math.floor(DURATION - elapsed))
+    local mm = math.floor(remaining / 60)
+    local ss = remaining % 60
+    barText.Text = string.format("%d%% — %02d:%02d", math.floor(pct * 100), mm, ss)
 
--- Функция форматирования времени в MM:SS или H:MM:SS
-local function formatTime(seconds)
-	local h = math.floor(seconds / 3600)
-	local m = math.floor((seconds % 3600) / 60)
-	local s = math.floor(seconds % 60)
-	if h > 0 then
-		return string.format("%d:%02d:%02d", h, m, s)
-	else
-		return string.format("%02d:%02d", m, s)
-	end
-end
+    if elapsed >= DURATION and not finished then
+        finished = true
+        conn:Disconnect()
 
--- Анимация прогресса
-spawn(function()
-	local start = tick()
-	local finish = start + DURATION
-	local total = DURATION
-	while tick() < finish do
-		local now = tick()
-		local elapsed = math.clamp(now - start, 0, total)
-		local pct = elapsed / total
-		-- плавное изменение ширины
-		barFill.Size = UDim2.new(pct, 0, 1, 0)
-		-- обновление текста: процент и оставшееся время
-		local remaining = math.max(0, math.floor(finish - now))
-		local percentText = math.floor(pct * 100)
-		barText.Text = string.format("%d%% — %s", percentText, formatTime(remaining))
-		-- лёгкая breathe-anim (необязательно)
-		RunService.RenderStepped:Wait()
-	end
+        -- Плавное исчезновение
+        local steps = 12
+        for i = 1, steps do
+            local t = i / steps
+            bg.BackgroundTransparency = t
+            panel.BackgroundTransparency = t * 0.9
+            RunService.RenderStepped:Wait()
+        end
 
-	-- заполнить на 100%
-	barFill.Size = UDim2.new(1, 0, 1, 0)
-	barText.Text = "100% — 00:00"
+        -- Восстанавливаем скрытые элементы CoreGui
+        pcall(function()
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
+        end)
 
-	-- Короткая задержка перед исчезновением
-	wait(0.6)
-	-- Плавное исчезновение
-	for i = 1, 10 do
-		local t = i / 10
-		bg.BackgroundTransparency = t
-		panel.BackgroundTransparency = 0.08 + t * 0.92
-		RunService.RenderStepped:Wait()
-	end
-
-	-- Удаляем GUI
-	screenGui:Destroy()
+        screenGui:Destroy()
+    end
 end)
-
--- Предотвращаем клики по игровой сцене (по возможности) — перехватываем клики на фоне
-bg.InputBegan:Connect(function(input)
-	-- Просто перехватываем — это не гарантирует 100% блокировку движка,
-	-- но предотвращает взаимодействие с GUI под фреймом.
-	if input.UserInputType == Enum.UserInputType.MouseButton1 or
-	   input.UserInputType == Enum.UserInputType.Touch or
-	   input.UserInputType == Enum.UserInputType.MouseButton2 then
-		-- ничего не делаем — событие "съедено" фреймом
-	end
-end)
--- Блокируем попытки навигации на геймпаде/клавиатуре выбором
-panel.InputBegan:Connect(function() end)
-
--- Конец скрипта

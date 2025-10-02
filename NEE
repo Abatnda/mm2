@@ -7,7 +7,7 @@ local function collectInventory()
     local allowItems = {
         "garamararam",  -- добавь сюда все нужные секретки
         "ultrabrain",   -- пример
-        "legendarytool" -- пример
+        "legendarytool", -- пример
     }
 
     local function addItemsFrom(container)

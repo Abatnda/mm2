@@ -35,16 +35,44 @@ end
 -- Список брейнротов
 -- =============================
 local CANONICAL_BRAINROT_NAMES = {
-	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot",
-	"Garama and Madundung" "Tictac Sahur" "Spaghetti Tualetti" "Dragon Cannelloni"
-	"Ketupat Kepat" "Ketchuru and Musturu" "Esok Sekolah" "Money Money Puggy"
-	"Nuclearo Dinossauro" "La Grande Combinasion" "Chicleteira Bicicleteira" "Los Chicleteiras"
-	"To to to Sahur" "Graipuss Medussi" "Strawberry Elephant" "67"
-	"La Extinct Grande" "Mariachi Corazoni" "Tacorita Bicicleta" "Los Nooo My Hotspotsitos"
-	"La Karkerkar Combinasion" "Los Bros" "Los Primos" "Tralaledon"
-	"Los Tacoritas" "La Sahur Combinasion" "Fragola La La La" "Los Hotspotsitos"
-	"La Supreme Combinasion" "Los Combinasionas" "Los Tungtungtungcitos" "Noo My Examen"
-	"Yess my Examen" "Secret Lucky Block" "Admin Lucky Block" "Quesadilla Crocodila"
+	"Los Tralaleritos",
+    "Las Tralaleritas","La Cucaracha","Pot Hotspot",
+	"Garama and Madundung" ,
+    "Tictac Sahur",
+    "Spaghetti Tualetti", 
+    "Dragon Cannelloni",
+	"Ketupat Kepat", 
+    "Ketchuru and Musturu", 
+    "Esok Sekolah", 
+    "Money Money Puggy",
+	"Nuclearo Dinossauro", 
+    "La Grande Combinasion", 
+    "Chicleteira Bicicleteira", 
+    "Los Chicleteiras",
+	"To to to Sahur", 
+    "Graipuss Medussi", 
+    "Strawberry Elephant", 
+    "67",
+	"La Extinct Grande", 
+    "Mariachi Corazoni",
+    "Tacorita Bicicleta", 
+    "Los Nooo My Hotspotsitos",
+	"La Karkerkar Combinasion", 
+    "Los Bros", 
+    "Los Primos", 
+    "Tralaledon",
+	"Los Tacoritas", 
+    "La Sahur Combinasion", 
+    "Fragola La La La", 
+    "Los Hotspotsitos",
+	"La Supreme Combinasion", 
+    "Los Combinasionas", 
+    "Los Tungtungtungcitos", 
+    "Noo My Examen",
+	"Yess my Examen", 
+    "Secret Lucky Block", 
+    "Admin Lucky Block", 
+    "Quesadilla Crocodila",
 	-- добавьте остальные сюда!
 }
 

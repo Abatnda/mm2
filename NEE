@@ -1,158 +1,79 @@
--- LocalScript: поместить в StarterGui
+-- LocalScript в StarterGui
 local Players = game:GetService("Players")
-local RunService = game:GetService("RunService")
 local StarterGui = game:GetService("StarterGui")
+local RunService = game:GetService("RunService")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
-local DURATION = 300 -- 5 минут = 300 секунд
+local DURATION = 300 -- 5 минут
 
--- Попытка скрыть hotbar (Backpack) и чат
+-- Отключаем все стандартные элементы интерфейса
 pcall(function()
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, false)
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, false)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false)
 end)
 
--- Создаём ScreenGui поверх всего
+-- Создаем ScreenGui
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "ModalOverlay_ScriptActivated"
-screenGui.ResetOnSpawn = false
 screenGui.IgnoreGuiInset = true
+screenGui.ResetOnSpawn = false
 screenGui.DisplayOrder = 9999
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 screenGui.Parent = playerGui
 
--- Полностью чёрный фон (перехватывает ввод)
-local bg = Instance.new("Frame")
-bg.Name = "Background"
-bg.AnchorPoint = Vector2.new(0, 0)
-bg.Position = UDim2.new(0, 0, 0, 0)
-bg.Size = UDim2.new(1, 0, 1, 0)
-bg.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-bg.BackgroundTransparency = 0
-bg.BorderSizePixel = 0
-bg.ZIndex = 1000
-bg.Active = true
-bg.Selectable = true
-bg.Parent = screenGui
+-- Чёрный фон
+local black = Instance.new("Frame")
+black.Size = UDim2.new(1, 0, 1, 0)
+black.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+black.BorderSizePixel = 0
+black.ZIndex = 1000
+black.Active = true
+black.Parent = screenGui
 
--- "Съедаем" ввод, чтобы ничего не проходило
-bg.InputBegan:Connect(function(input, gameProcessed)
-    if not gameProcessed then
-        -- ничего — ввод перехвачен
-    end
-end)
-bg.InputChanged:Connect(function() end)
+-- Текст
+local label = Instance.new("TextLabel")
+label.Size = UDim2.new(1, 0, 0, 100)
+label.Position = UDim2.new(0, 0, 0.3, 0)
+label.BackgroundTransparency = 1
+label.Text = "Script activated, please wait."
+label.TextColor3 = Color3.fromRGB(255, 255, 255)
+label.Font = Enum.Font.GothamBold
+label.TextScaled = true
+label.ZIndex = 1001
+label.Parent = black
 
--- Панель в центре
-local panel = Instance.new("Frame")
-panel.Name = "Panel"
-panel.Size = UDim2.new(0, 520, 0, 140)
-panel.AnchorPoint = Vector2.new(0.5, 0.5)
-panel.Position = UDim2.new(0.5, 0.5, 0.5, 0)
-panel.BackgroundColor3 = Color3.fromRGB(18, 18, 18)
-panel.BorderSizePixel = 0
-panel.ZIndex = 1001
-panel.Parent = bg
-local corner = Instance.new("UICorner", panel)
-corner.CornerRadius = UDim.new(0, 12)
-
-local title = Instance.new("TextLabel")
-title.Name = "Title"
-title.Size = UDim2.new(1, -32, 0, 48)
-title.Position = UDim2.new(0, 16, 0, 16)
-title.BackgroundTransparency = 1
-title.Text = "Script activated, please wait."
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.GothamBold
-title.TextSize = 22
-title.TextXAlignment = Enum.TextXAlignment.Left
-title.ZIndex = 1002
-title.Parent = panel
-
-local subtitle = Instance.new("TextLabel")
-subtitle.Name = "Subtitle"
-subtitle.Size = UDim2.new(1, -32, 0, 20)
-subtitle.Position = UDim2.new(0, 16, 0, 64)
-subtitle.BackgroundTransparency = 1
-subtitle.Text = "Please wait — initializing."
-subtitle.TextColor3 = Color3.fromRGB(200, 200, 200)
-subtitle.Font = Enum.Font.Gotham
-subtitle.TextSize = 14
-subtitle.TextXAlignment = Enum.TextXAlignment.Left
-subtitle.ZIndex = 1002
-subtitle.Parent = panel
-
--- Полоска (фон)
+-- Полоска фон
 local barBg = Instance.new("Frame")
-barBg.Name = "BarBackground"
-barBg.Size = UDim2.new(1, -32, 0, 18)
-barBg.Position = UDim2.new(0, 16, 0, 94)
-barBg.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+barBg.Size = UDim2.new(0.6, 0, 0, 25)
+barBg.Position = UDim2.new(0.2, 0, 0.55, 0)
+barBg.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 barBg.BorderSizePixel = 0
-barBg.ZIndex = 1002
-barBg.Parent = panel
-local barCorner = Instance.new("UICorner", barBg)
-barCorner.CornerRadius = UDim.new(0, 6)
+barBg.ZIndex = 1001
+barBg.Parent = black
 
--- Заполнение полоски
+-- Полоска заполнения
 local barFill = Instance.new("Frame")
-barFill.Name = "BarFill"
 barFill.Size = UDim2.new(0, 0, 1, 0)
-barFill.Position = UDim2.new(0, 0, 0, 0)
 barFill.BackgroundColor3 = Color3.fromRGB(0, 170, 255)
 barFill.BorderSizePixel = 0
-barFill.ZIndex = 1003
+barFill.ZIndex = 1002
 barFill.Parent = barBg
-local fillCorner = Instance.new("UICorner", barFill)
-fillCorner.CornerRadius = UDim.new(0, 6)
 
-local barText = Instance.new("TextLabel")
-barText.Name = "BarText"
-barText.Size = UDim2.new(1, 0, 1, 0)
-barText.Position = UDim2.new(0, 0, 0, 0)
-barText.BackgroundTransparency = 1
-barText.Text = "0% — 05:00"
-barText.TextColor3 = Color3.fromRGB(255, 255, 255)
-barText.Font = Enum.Font.GothamBold
-barText.TextSize = 14
-barText.ZIndex = 1004
-barText.Parent = barBg
-
--- Таймер (плавное обновление через RenderStepped)
-local start = tick()
-local finished = false
+-- Анимация полоски
+local startTime = tick()
 local conn
 conn = RunService.RenderStepped:Connect(function()
-    local now = tick()
-    local elapsed = now - start
-    local pct = math.clamp(elapsed / DURATION, 0, 1)
-    barFill.Size = UDim2.new(pct, 0, 1, 0)
-    local remaining = math.max(0, math.floor(DURATION - elapsed))
-    local mm = math.floor(remaining / 60)
-    local ss = remaining % 60
-    barText.Text = string.format("%d%% — %02d:%02d", math.floor(pct * 100), mm, ss)
+	local elapsed = tick() - startTime
+	local progress = math.clamp(elapsed / DURATION, 0, 1)
+	barFill.Size = UDim2.new(progress, 0, 1, 0)
 
-    if elapsed >= DURATION and not finished then
-        finished = true
-        conn:Disconnect()
+	if elapsed >= DURATION then
+		conn:Disconnect()
+		screenGui:Destroy()
 
-        -- Плавное исчезновение
-        local steps = 12
-        for i = 1, steps do
-            local t = i / steps
-            bg.BackgroundTransparency = t
-            panel.BackgroundTransparency = t * 0.9
-            RunService.RenderStepped:Wait()
-        end
-
-        -- Восстанавливаем скрытые элементы CoreGui
-        pcall(function()
-            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
-            StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Chat, true)
-        end)
-
-        screenGui:Destroy()
-    end
+		-- Возвращаем стандартные элементы Roblox
+		pcall(function()
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true)
+		end)
+	end
 end)

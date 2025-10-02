@@ -7,8 +7,8 @@ screenGui.ResetOnSpawn = false
 
 -- Меню квадратное
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 200)
-frame.Position = UDim2.new(0.5, -100, 0.5, -100)
+frame.Size = UDim2.new(0, 200, 0, 220)
+frame.Position = UDim2.new(0.5, -100, 0.5, -110)
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
@@ -17,10 +17,37 @@ local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 15)
 uicorner.Parent = frame
 
+-- Переключатель сверху "Activate"
+local toggle = Instance.new("TextButton")
+toggle.Size = UDim2.new(0, 100, 0, 30)
+toggle.Position = UDim2.new(0.5, -50, 0, 5)
+toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- серый, пока выключен
+toggle.Text = "Activate"
+toggle.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggle.Font = Enum.Font.SourceSansBold
+toggle.TextScaled = true
+toggle.Parent = frame
+
+local toggleCorner = Instance.new("UICorner")
+toggleCorner.CornerRadius = UDim.new(0, 10)
+toggleCorner.Parent = toggle
+
+local active = false
+toggle.MouseButton1Click:Connect(function()
+	active = not active
+	if active then
+		toggle.BackgroundColor3 = Color3.fromRGB(0, 200, 0) -- зелёный
+		print("Activated")
+	else
+		toggle.BackgroundColor3 = Color3.fromRGB(80, 80, 80) -- серый
+		print("Deactivated")
+	end
+end)
+
 -- Текст
 local textLabel = Instance.new("TextLabel")
 textLabel.Size = UDim2.new(1, -20, 0, 25)
-textLabel.Position = UDim2.new(0, 10, 0, 20)
+textLabel.Position = UDim2.new(0, 10, 0, 50)
 textLabel.BackgroundTransparency = 1
 textLabel.Text = "Plague Client"
 textLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -30,28 +57,26 @@ textLabel.Parent = frame
 
 -- Полоска под текстом (динамическая)
 local bar = Instance.new("Frame")
-bar.Size = UDim2.new(0, 0, 0, 4) -- начальная ширина 0
-bar.Position = UDim2.new(0.5, 0, 0, 50)
-bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- зелёная
+bar.Size = UDim2.new(0, 0, 0, 4)
+bar.Position = UDim2.new(0.5, 0, 0, 80)
+bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0)
 bar.BorderSizePixel = 0
 bar.Parent = frame
 
--- Обновляем ширину полоски после рендера текста
 textLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	local width = textLabel.TextBounds.X
 	bar.Size = UDim2.new(0, width, 0, 4)
-	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
+	bar.Position = UDim2.new(0.5, -width/2, 0, 80)
 end)
 
--- Изначально подгоняем полоску
 local initialWidth = textLabel.TextBounds.X
 bar.Size = UDim2.new(0, initialWidth, 0, 4)
-bar.Position = UDim2.new(0.5, -initialWidth/2, 0, 50)
+bar.Position = UDim2.new(0.5, -initialWidth/2, 0, 80)
 
--- Кнопка внизу
+-- Большая кнопка "Tp base" снизу
 local button = Instance.new("TextButton")
-button.Size = UDim2.new(0, 100, 0, 30)
-button.Position = UDim2.new(0.5, -50, 1, -50)
+button.Size = UDim2.new(0, 140, 0, 40) -- больше по ширине и высоте
+button.Position = UDim2.new(0.5, -70, 1, -50)
 button.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
 button.Text = "Tp base"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -60,8 +85,12 @@ button.TextScaled = true
 button.Parent = frame
 
 local buttonCorner = Instance.new("UICorner")
-buttonCorner.CornerRadius = UDim.new(0, 10)
+buttonCorner.CornerRadius = UDim.new(0, 12)
 buttonCorner.Parent = button
+
+button.MouseButton1Click:Connect(function()
+	print("Телепорт на базу!")
+end)
 
 -- Перетаскивание
 local UserInputService = game:GetService("UserInputService")
@@ -96,9 +125,4 @@ UserInputService.InputChanged:Connect(function(input)
 			startPos.Y.Scale, startPos.Y.Offset + delta.Y
 		)
 	end
-end)
-
--- Пример действия кнопки
-button.MouseButton1Click:Connect(function()
-	print("Телепорт на базу!")
 end)

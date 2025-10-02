@@ -1,28 +1,25 @@
--- Получаем игрока и его GUI
 local player = game.Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 
--- Создаём ScreenGui
 local screenGui = Instance.new("ScreenGui")
 screenGui.Parent = playerGui
 screenGui.ResetOnSpawn = false
 
--- Меню (квадрат)
+-- Меню квадратное
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 200) -- квадрат 200x200
-frame.Position = UDim2.new(0.5, -100, 0.5, -100) -- по центру
+frame.Size = UDim2.new(0, 200, 0, 200)
+frame.Position = UDim2.new(0.5, -100, 0.5, -100)
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
--- Закругление углов
 local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 15)
 uicorner.Parent = frame
 
--- Текст "Plague Client"
+-- Текст
 local textLabel = Instance.new("TextLabel")
-textLabel.Size = UDim2.new(1, -20, 0, 30) -- шире под полоску
+textLabel.Size = UDim2.new(1, -20, 0, 25)
 textLabel.Position = UDim2.new(0, 10, 0, 20)
 textLabel.BackgroundTransparency = 1
 textLabel.Text = "Plague Client"
@@ -31,34 +28,42 @@ textLabel.Font = Enum.Font.SourceSansBold
 textLabel.TextScaled = true
 textLabel.Parent = frame
 
--- Полоска под текстом, подгоняем под размер текста
+-- Полоска под текстом (динамическая)
 local bar = Instance.new("Frame")
-bar.Size = UDim2.new(0, textLabel.TextBounds.X, 0, 4) -- ширина = текст
-bar.Position = UDim2.new(0.5, -textLabel.TextBounds.X/2, 0, 60)
+bar.Size = UDim2.new(0, 0, 0, 4) -- начальная ширина 0
+bar.Position = UDim2.new(0.5, 0, 0, 50)
 bar.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- зелёная
 bar.BorderSizePixel = 0
 bar.Parent = frame
 
--- Острые края полоски (не закругляем)
--- ничего не делаем с UICorner, будет остро
+-- Обновляем ширину полоски после рендера текста
+textLabel:GetPropertyChangedSignal("Text"):Connect(function()
+	local width = textLabel.TextBounds.X
+	bar.Size = UDim2.new(0, width, 0, 4)
+	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
+end)
 
--- Кнопка внизу "Tp base"
+-- Изначально подгоняем полоску
+local initialWidth = textLabel.TextBounds.X
+bar.Size = UDim2.new(0, initialWidth, 0, 4)
+bar.Position = UDim2.new(0.5, -initialWidth/2, 0, 50)
+
+-- Кнопка внизу
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 100, 0, 30)
-button.Position = UDim2.new(0.5, -50, 1, -50) -- снизу
-button.BackgroundColor3 = Color3.fromRGB(0, 102, 255) -- синий
+button.Position = UDim2.new(0.5, -50, 1, -50)
+button.BackgroundColor3 = Color3.fromRGB(0, 102, 255)
 button.Text = "Tp base"
 button.TextColor3 = Color3.fromRGB(255, 255, 255)
 button.Font = Enum.Font.SourceSansBold
 button.TextScaled = true
 button.Parent = frame
 
--- Закругление углов кнопки
 local buttonCorner = Instance.new("UICorner")
 buttonCorner.CornerRadius = UDim.new(0, 10)
 buttonCorner.Parent = button
 
--- Скрипт для перетаскивания
+-- Перетаскивание
 local UserInputService = game:GetService("UserInputService")
 local dragging = false
 local dragStart
@@ -96,5 +101,4 @@ end)
 -- Пример действия кнопки
 button.MouseButton1Click:Connect(function()
 	print("Телепорт на базу!")
-	-- Тут можно вставить реальный код телепортации
 end)

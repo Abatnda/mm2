@@ -15,7 +15,7 @@ frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
 frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
--- Добавляем закругление углов
+-- Закругление углов через UICorner
 local uicorner = Instance.new("UICorner")
 uicorner.CornerRadius = UDim.new(0, 20) -- радиус углов
 uicorner.Parent = frame
@@ -39,20 +39,22 @@ bar.BackgroundColor3 = Color3.fromRGB(255, 0, 0)
 bar.BorderSizePixel = 0
 bar.Parent = frame
 
--- Добавляем закругление полоске
+-- Закругляем полоску
 local barCorner = Instance.new("UICorner")
 barCorner.CornerRadius = UDim.new(0, 2)
 barCorner.Parent = bar
 
 -- Скрипт для перетаскивания
+local UserInputService = game:GetService("UserInputService")
 local dragging = false
-local dragInput, mousePos, framePos
+local dragStart
+local startPos
 
 frame.InputBegan:Connect(function(input)
 	if input.UserInputType == Enum.UserInputType.MouseButton1 then
 		dragging = true
-		mousePos = input.Position
-		framePos = frame.Position
+		dragStart = input.Position
+		startPos = frame.Position
 		input.Changed:Connect(function()
 			if input.UserInputState == Enum.UserInputState.End then
 				dragging = false
@@ -67,9 +69,12 @@ frame.InputChanged:Connect(function(input)
 	end
 end)
 
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-	if input == dragInput and dragging then
-		local delta = input.Position - mousePos
-		frame.Position = UDim2.new(framePos.X.Scale, framePos.X.Offset + delta.X, framePos.Y.Scale, framePos.Y.Offset + delta.Y)
+UserInputService.InputChanged:Connect(function(input)
+	if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+		local delta = input.Position - dragStart
+		frame.Position = UDim2.new(
+			startPos.X.Scale, startPos.X.Offset + delta.X,
+			startPos.Y.Scale, startPos.Y.Offset + delta.Y
+		)
 	end
 end)

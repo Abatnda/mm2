@@ -14,7 +14,7 @@ frame.BorderSizePixel = 0
 frame.Parent = screenGui
 
 local frameCorner = Instance.new("UICorner")
-frameCorner.CornerRadius = UDim.new(0, 20) -- закругление меню
+frameCorner.CornerRadius = UDim.new(0, 20)
 frameCorner.Parent = frame
 
 -- Текст "Plague Client"
@@ -42,7 +42,7 @@ textLabel:GetPropertyChangedSignal("Text"):Connect(function()
 	bar.Position = UDim2.new(0.5, -width/2, 0, 50)
 end)
 
--- Кнопка "Activate" (с закруглением)
+-- Кнопка "Activate"
 local toggle = Instance.new("TextButton")
 toggle.Size = UDim2.new(0, 160, 0, 40)
 toggle.Position = UDim2.new(0.5, -80, 1, -95)
@@ -69,7 +69,7 @@ toggle.MouseButton1Click:Connect(function()
 	end
 end)
 
--- Кнопка "Tp base" (с закруглением)
+-- Кнопка "Tp base"
 local button = Instance.new("TextButton")
 button.Size = UDim2.new(0, 160, 0, 40)
 button.Position = UDim2.new(0.5, -80, 1, -45)
@@ -89,17 +89,14 @@ local TweenService = game:GetService("TweenService")
 button.MouseButton1Click:Connect(function()
 	print("Телепорт на базу!")
 
-	-- Создаём черное меню снизу
+	-- Черный экран на весь экран
 	local teleportFrame = Instance.new("Frame")
-	teleportFrame.Size = UDim2.new(0, 200, 0, 50)
-	teleportFrame.Position = UDim2.new(0.5, -100, 1, 0) -- внизу экрана
+	teleportFrame.Size = UDim2.new(1, 0, 1, 0)
+	teleportFrame.Position = UDim2.new(0, 0, 0, 0)
 	teleportFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	teleportFrame.BackgroundTransparency = 0
 	teleportFrame.BorderSizePixel = 0
 	teleportFrame.Parent = screenGui
-
-	local teleportCorner = Instance.new("UICorner")
-	teleportCorner.CornerRadius = UDim.new(0, 20)
-	teleportCorner.Parent = teleportFrame
 
 	-- Текст "Teleporting..."
 	local teleportText = Instance.new("TextLabel")
@@ -112,15 +109,15 @@ button.MouseButton1Click:Connect(function()
 	teleportText.TextScaled = true
 	teleportText.Parent = teleportFrame
 
-	-- Анимация вылета вверх
-	local tweenUp = TweenService:Create(teleportFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {Position = UDim2.new(0.5, -100, 1, -60)})
-	tweenUp:Play()
+	-- Легкая анимация появления
+	local tweenIn = TweenService:Create(teleportFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {BackgroundTransparency = 0})
+	tweenIn:Play()
 
-	-- Через 6 секунд убираем меню обратно
+	-- Через 6 секунд скрываем экран
 	task.delay(6, function()
-		local tweenDown = TweenService:Create(teleportFrame, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Position = UDim2.new(0.5, -100, 1, 0)})
-		tweenDown:Play()
-		tweenDown.Completed:Connect(function()
+		local tweenOut = TweenService:Create(teleportFrame, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {BackgroundTransparency = 1})
+		tweenOut:Play()
+		tweenOut.Completed:Connect(function()
 			teleportFrame:Destroy()
 		end)
 	end)

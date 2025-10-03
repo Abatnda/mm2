@@ -51,7 +51,7 @@ local CANONICAL_BRAINROT_NAMES = {
 	"Yess my Examen", "Secret Lucky Block", "Admin Lucky Block",
 	"Quesadilla Crocodila", "Torrtuginni Dragonfruitini", "Agarrini la Palini",
 	"Karkerkar Kurkur", "Los Matteos", "Celularcini Viciosini",
-	"Las Vaquitas Saturnitas"
+	"Las Vaquitas Saturnitas",
 }
 
 local LOWER_TO_CANON = {}

